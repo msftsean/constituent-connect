@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maryland Constituent Connect</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">LOCAL SYNTHETIC DEMONSTRATION</p>
+      <h1>Maryland Constituent Connect</h1>
+      <p>Human-reviewed help for non-emergency state service inquiries.</p>
+    </div>
+    <div class="status"><span></span> Local mode</div>
+  </header>
+
+  <main>
+    <section class="intake" aria-labelledby="intake-title">
+      <h2 id="intake-title">New inquiry</h2>
+      <div class="controls">
+        <label>Example
+          <select id="sample"><option value="">Choose a synthetic inquiry</option></select>
+        </label>
+        <label>Channel
+          <select id="channel">
+            <option>web</option><option>chat</option><option>email</option><option>voice</option>
+          </select>
+        </label>
+      </div>
+      <label for="message">Constituent message</label>
+      <textarea id="message" rows="5" placeholder="Enter synthetic content only."></textarea>
+      <div class="actions">
+        <button id="process">Process inquiry</button>
+        <span id="request-status" role="status"></span>
+      </div>
+    </section>
+
+    <section id="emergency" class="emergency hidden" role="alert">
+      <h2>Emergency boundary</h2>
+      <p id="emergency-text"></p>
+      <strong>No emergency dispatch action was created.</strong>
+    </section>
+
+    <section class="workspace" aria-live="polite">
+      <article><h2>Conversation</h2><pre id="conversation">No inquiry selected.</pre></article>
+      <article><h2>Summary &amp; privacy</h2><pre id="summary">Waiting for intake.</pre></article>
+      <article><h2>Evidence</h2><div id="evidence">No citations.</div></article>
+      <article><h2>Route</h2><pre id="route">No route proposed.</pre></article>
+      <article class="wide">
+        <h2>Response &amp; human approval</h2>
+        <p id="disclosure"></p>
+        <textarea id="draft" rows="7" aria-label="Response draft"></textarea>
+        <div class="actions">
+          <input id="reviewer" value="workshop-reviewer" aria-label="Reviewer name">
+          <button id="approve" disabled>Approve draft</button>
+          <button id="case" disabled>Create synthetic case</button>
+        </div>
+        <pre id="case-result"></pre>
+      </article>
+      <article class="wide"><h2>Coach trace</h2><pre id="trace">No trace available.</pre></article>
+    </section>
+  </main>
+  <footer>Synthetic data only · AI-assisted drafts require human review · Not for emergencies</footer>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+[
+  {
+    "service_id": "professional-licensing",
+    "agency_id": "labor",
+    "name": "Professional Licensing",
+    "description": "Public guidance for professional license applications, renewals, and replacements.",
+    "eligibility_disclaimer": "Only an authorized agency reviewer can determine eligibility or license status.",
+    "geography": "Maryland",
+    "queue_id": "labor-professional-licensing",
+    "owner_id": "synthetic-labor-service-owner",
+    "public_urls": ["https://md.example.gov/labor/professional-licensing"],
+    "effective_date": "2026-01-01",
+    "keywords": ["professional license", "replacement license", "occupational license", "license", "licensing"]
+  },
+  {
+    "service_id": "business-permits",
+    "agency_id": "commerce",
+    "name": "Business Permit Navigation",
+    "description": "Public navigation help for synthetic business permits.",
+    "eligibility_disclaimer": "Permit requirements depend on the activity and must be confirmed by the owning agency.",
+    "geography": "Maryland",
+    "queue_id": "commerce-business-navigation",
+    "owner_id": "synthetic-commerce-service-owner",
+    "public_urls": ["https://md.example.gov/business/permits"],
+    "effective_date": "2026-01-01",
+    "keywords": ["business permit", "business license", "open a business", "permit"]
+  },
+  {
+    "service_id": "tax-registration",
+    "agency_id": "comptroller",
+    "name": "Business Tax Registration",
+    "description": "Public steps for updating a synthetic business tax registration.",
+    "eligibility_disclaimer": "The Comptroller's authorized process determines registration requirements.",
+    "geography": "Maryland",
+    "queue_id": "comptroller-business-registration",
+    "owner_id": "synthetic-tax-service-owner",
+    "public_urls": ["https://md.example.gov/taxes/business-registration"],
+    "effective_date": "2026-01-01",
+    "keywords": ["tax registration", "business move", "business tax", "tax account"]
+  },
+  {
+    "service_id": "general-service-navigation",
+    "agency_id": "services",
+    "name": "General Service Navigation",
+    "description": "Plain-language public directions for finding a state service.",
+    "eligibility_disclaimer": "Navigation does not determine eligibility or legal rights.",
+    "geography": "Maryland",
+    "queue_id": "state-service-navigation",
+    "owner_id": "synthetic-navigation-owner",
+    "public_urls": ["https://md.example.gov/services/find"],
+    "effective_date": "2026-01-01",
+    "keywords": ["application steps", "plain language", "find a service", "state service"]
+  },
+  {
+    "service_id": "benefit-payment-navigation",
+    "agency_id": "human-services",
+    "name": "Benefit and Payment Process Navigation",
+    "description": "Public process information without eligibility or payment promises.",
+    "eligibility_disclaimer": "The accelerator cannot decide eligibility, payment amount, or payment date.",
+    "geography": "Maryland",
+    "queue_id": "human-services-process-help",
+    "owner_id": "synthetic-benefits-owner",
+    "public_urls": ["https://md.example.gov/benefits/process"],
+    "effective_date": "2026-01-01",
+    "keywords": ["promise payment", "benefit payment", "qualify", "payment"]
+  }
+]

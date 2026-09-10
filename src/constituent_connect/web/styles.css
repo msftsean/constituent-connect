@@ -1,0 +1,54 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  color: #172238;
+  background: #eef2f7;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+header {
+  background: #152f52;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1.5rem max(4vw, 1rem);
+}
+header h1 { margin: .1rem 0; }
+header p { margin: .3rem 0; }
+.eyebrow { color: #9fd3ff; font-size: .75rem; font-weight: 800; letter-spacing: .12em; }
+.status { align-self: center; background: #24496f; border-radius: 2rem; padding: .6rem 1rem; }
+.status span { display: inline-block; width: .65rem; height: .65rem; border-radius: 50%; background: #6fe3a3; margin-right: .35rem; }
+main { max-width: 1200px; margin: 1.5rem auto; padding: 0 1rem; }
+section, article { background: white; border: 1px solid #dce3ed; border-radius: .7rem; box-shadow: 0 2px 8px #19324d12; }
+.intake, .emergency { padding: 1.2rem; margin-bottom: 1rem; }
+h2 { font-size: 1rem; margin-top: 0; color: #173d68; }
+label { display: block; font-weight: 700; font-size: .85rem; }
+.controls { display: flex; gap: 1rem; margin-bottom: 1rem; }
+.controls label:first-child { flex: 1; }
+select, textarea, input {
+  width: 100%;
+  margin-top: .3rem;
+  border: 1px solid #aebbc9;
+  border-radius: .35rem;
+  padding: .65rem;
+  background: white;
+  color: #172238;
+  font: inherit;
+}
+.actions { display: flex; align-items: center; gap: .7rem; margin-top: .7rem; flex-wrap: wrap; }
+button { border: 0; border-radius: .35rem; padding: .7rem 1rem; background: #1769aa; color: white; font-weight: 750; cursor: pointer; }
+button:disabled { background: #8996a4; cursor: not-allowed; }
+.workspace { background: transparent; border: 0; box-shadow: none; display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+article { padding: 1rem; min-height: 170px; overflow: auto; }
+article.wide { grid-column: 1 / -1; }
+pre { white-space: pre-wrap; word-break: break-word; font: .82rem/1.5 ui-monospace, monospace; }
+#evidence a { display: block; color: #075c9d; margin: .6rem 0; }
+.emergency { border-left: .5rem solid #c3313b; background: #fff6f6; }
+.hidden { display: none; }
+footer { text-align: center; color: #526071; padding: 1.5rem; font-size: .85rem; }
+@media (max-width: 720px) {
+  header, .controls { flex-direction: column; }
+  .workspace { grid-template-columns: 1fr; }
+  article.wide { grid-column: auto; }
+}

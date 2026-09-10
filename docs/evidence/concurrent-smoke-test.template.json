@@ -1,0 +1,24 @@
+{
+  "evidence_id": "replace-with-synthetic-id",
+  "synthetic_only": true,
+  "purpose": "Safe concurrent workshop smoke-test evidence",
+  "run": {
+    "workers": 0,
+    "requests": 0,
+    "request_ids": [],
+    "endpoint_class": "local synthetic workflow",
+    "external_endpoint": false
+  },
+  "checks": {
+    "all_results_completed": false,
+    "all_results_are_drafts": false,
+    "approval_required": true,
+    "created_case_ids": [],
+    "dispatch_actions": [],
+    "raw_pii_present": false,
+    "cross_request_data_observed": false,
+    "emergency_requests_in_batch": false
+  },
+  "result": "not-run",
+  "notes": "Replace only with synthetic values. Never record request bodies, raw PII, credentials, or live endpoints."
+}

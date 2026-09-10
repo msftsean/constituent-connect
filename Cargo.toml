@@ -1,0 +1,16 @@
+[package]
+name = "constituent-connect-rust"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "constituent_connect"
+path = "src/lib.rs"
+
+[[bin]]
+name = "constituent-connect"
+path = "src/main.rs"
+
+[[bin]]
+name = "constituent-connect-eval"
+path = "src/bin/eval.rs"

@@ -31,10 +31,12 @@ pub fn redact(input: &str) -> String {
 
 pub fn classify(message: &str) -> Inquiry {
     let lower = message.to_lowercase();
-    let emergency = ["smoke", "fire", "trapped", "shooting", "not breathing",
+    let current_emergency = ["smoke", "trapped", "shooting", "not breathing",
         "overdose", "medical emergency", "immediate danger", "active violence"]
-        .iter().any(|term| lower.contains(term))
-        && !["last year", "years ago", "historically"].iter().any(|term| lower.contains(term));
+        .iter().any(|term| lower.contains(term));
+    let historical = ["last year", "years ago", "historically", "old report", "past incident"]
+        .iter().any(|term| lower.contains(term));
+    let emergency = current_emergency || (lower.contains("fire") && !historical);
     let injection = ["ignore your rules", "show hidden instructions", "system prompt",
         "reveal secrets"].iter().any(|term| lower.contains(term));
     let redacted = redact(message);
@@ -86,8 +88,8 @@ pub fn json_response(inquiry: &Inquiry) -> String {
     let route = inquiry.route.as_deref().map(|v| format!("\"{}\"", json_escape(v))).unwrap_or_else(|| "null".to_string());
     let citations = inquiry.citations.iter().map(|v| format!("\"{}\"", json_escape(v))).collect::<Vec<_>>().join(",");
     format!(
-        "{{\"message\":\"{}\",\"inquiry\":{{\"summary\":\"{}\",\"redacted_content\":\"{}\",\"emergency_signal\":{},\"injection_detected\":{},\"transformation_history\":[{{\"stage\":\"safety_privacy\",\"outcome\":\"{}\"}}]}},\"route\":{{\"primary_service_id\":{},\"confidence\":{},\"status\":\"{}\",\"human_review_required\":true}},\"response\":{{\"draft\":\"{}\",\"citations\":[{}],\"approval_status\":\"pending\",\"ai_disclosure\":\"{}\"}}}}",
-        json_escape(&inquiry.message), json_escape(&inquiry.summary), json_escape(&inquiry.redacted),
+        "{{\"inquiry\":{{\"summary\":\"{}\",\"redacted_content\":\"{}\",\"emergency_signal\":{},\"injection_detected\":{},\"transformation_history\":[{{\"stage\":\"safety_privacy\",\"outcome\":\"{}\"}}]}},\"route\":{{\"primary_service_id\":{},\"confidence\":{},\"status\":\"{}\",\"human_review_required\":true}},\"response\":{{\"draft\":\"{}\",\"citations\":[{}],\"approval_status\":\"pending\",\"ai_disclosure\":\"{}\"}}}}",
+        json_escape(&inquiry.summary), json_escape(&inquiry.redacted),
         inquiry.emergency, inquiry.injection, inquiry.status, route, inquiry.confidence, inquiry.status,
         json_escape(&response(inquiry)), citations, json_escape(DISCLOSURE)
     )
@@ -134,5 +136,18 @@ mod tests {
         let result = classify("I need help with my permit.");
         assert_eq!(result.status, "clarification_required");
         assert_eq!(result.route, None);
+    }
+
+    #[test]
+    fn current_danger_overrides_historical_reference() {
+        let result = classify("Last year I read an old report about a fire; today smoke is filling my apartment and someone is trapped.");
+        assert!(result.emergency);
+        assert_eq!(result.route, None);
+    }
+
+    #[test]
+    fn serialized_response_does_not_include_raw_pii() {
+        let result = classify("My SSN is 123-45-6789 and I need a license.");
+        assert!(!json_response(&result).contains("123-45-6789"));
     }
 }

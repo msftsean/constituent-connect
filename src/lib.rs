@@ -36,7 +36,15 @@ pub fn classify(message: &str) -> Inquiry {
         .iter().any(|term| lower.contains(term));
     let historical = ["last year", "years ago", "historically", "old report", "past incident"]
         .iter().any(|term| lower.contains(term));
-    let emergency = current_emergency || (lower.contains("fire") && !historical);
+    let current_fire = lower.contains("there is a fire")
+        || lower.contains("there's a fire")
+        || lower.contains("fire in my")
+        || lower.contains("fire now")
+        || lower.contains("fire right now")
+        || lower.contains("fire currently")
+        || lower.contains("fire today")
+        || lower.contains("active fire");
+    let emergency = current_emergency || current_fire || (lower.contains("fire") && !historical);
     let injection = ["ignore your rules", "show hidden instructions", "system prompt",
         "reveal secrets"].iter().any(|term| lower.contains(term));
     let redacted = redact(message);

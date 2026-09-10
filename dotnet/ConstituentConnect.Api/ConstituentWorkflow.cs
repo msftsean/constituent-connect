@@ -104,7 +104,8 @@ public sealed class ConstituentWorkflow
         var injection = Injection.IsMatch(content ?? "");
         if (injection) redacted = Injection.Replace(redacted, "[IGNORED UNTRUSTED INSTRUCTION]");
         var hasEmergencyLanguage = Emergency.IsMatch(content ?? "");
-        var emergency = hasEmergencyLanguage && (!Historical.IsMatch(content ?? "") || CurrentDanger.IsMatch(content ?? "") || CurrentFire.IsMatch(content ?? ""));
+        var unambiguousEmergency = Regex.IsMatch(content ?? "", @"\b(smoke|trapped|shooting|gun|immediate danger|cannot breathe|not breathing|overdose|medical emergency|suicide|kill myself|active violence|bleeding badly)\b", RegexOptions.IgnoreCase);
+        var emergency = unambiguousEmergency || (hasEmergencyLanguage && (!Historical.IsMatch(content ?? "") || CurrentDanger.IsMatch(content ?? "") || CurrentFire.IsMatch(content ?? "")));
         var detectedLanguage = !string.IsNullOrWhiteSpace(language) && language != "und" ? language :
             Regex.Matches(content ?? "", @"\b(necesito|licencia|impuesto|ayuda|solicitud|permiso|gracias)\b", RegexOptions.IgnoreCase).Count >= 2 ? "es" : "en";
         var summary = BuildSafeSummary(redacted, findings, injection, emergency);

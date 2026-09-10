@@ -67,6 +67,16 @@ public sealed class WorkflowTests
     }
 
     [Fact]
+    public void Unambiguous_current_danger_is_not_suppressed_by_history()
+    {
+        var result = new ConstituentWorkflow().Process(
+            "Last year there was a fire, but someone is trapped.", "web");
+
+        Assert.True(result.Inquiry.EmergencySignal);
+        Assert.Equal("emergency_exit", result.Route.Status);
+    }
+
+    [Fact]
     public void Approval_rejects_without_the_explicit_local_authority_role()
     {
         var workflow = new ConstituentWorkflow();

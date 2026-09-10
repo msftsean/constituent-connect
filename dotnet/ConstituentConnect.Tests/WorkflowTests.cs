@@ -38,11 +38,12 @@ public sealed class WorkflowTests
     [Fact]
     public void Approving_a_response_is_required_before_creating_scoped_case()
     {
+        Environment.SetEnvironmentVariable("CONSTITUENT_CONNECT_APPROVER_TOKEN", "test-approver-token");
         var workflow = new ConstituentWorkflow();
         var result = workflow.Process(
             "My business move affects both my license and tax registration.", "email");
 
-        workflow.ApproveResponse(result.Response.ResponseId, "untrusted-body-value", approverRole: ConstituentWorkflow.ApprovalAuthorityRole);
+        workflow.ApproveResponse(result.Response.ResponseId, "trusted-test-reviewer", approverRole: ConstituentWorkflow.ApprovalAuthorityRole, approverToken: "test-approver-token");
         var created = workflow.CreateCase(result.Response.ResponseId);
 
         Assert.Equal("open", created.Status);

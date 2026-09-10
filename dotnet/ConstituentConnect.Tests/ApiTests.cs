@@ -5,8 +5,15 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace ConstituentConnect.Tests;
 
-public sealed class ApiTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
+public sealed class ApiTests : IClassFixture<WebApplicationFactory<Program>>
 {
+    private readonly WebApplicationFactory<Program> factory;
+    public ApiTests(WebApplicationFactory<Program> factory)
+    {
+        this.factory = factory;
+        SetToken();
+    }
+    private static bool SetToken() { Environment.SetEnvironmentVariable("CONSTITUENT_CONNECT_APPROVER_TOKEN", "test-approver-token"); return true; }
     [Fact]
     public async Task End_to_end_api_keeps_approval_gate_before_case_creation()
     {
@@ -36,11 +43,13 @@ public sealed class ApiTests(WebApplicationFactory<Program> factory) : IClassFix
             Content = JsonContent.Create(new { reviewer = "untrusted-body-value" })
         };
         authorizedRequest.Headers.Add(ConstituentWorkflow.ApprovalAuthorityHeader, ConstituentWorkflow.ApprovalAuthorityRole);
+        authorizedRequest.Headers.Add(ConstituentWorkflow.ApprovalTokenHeader, "test-approver-token");
+        authorizedRequest.Headers.Add(ConstituentWorkflow.AuthenticatedReviewerHeader, "trusted-test-reviewer");
         approval = await factory.CreateClient().SendAsync(authorizedRequest);
         Assert.Equal(HttpStatusCode.OK, approval.StatusCode);
         var approved = await approval.Content.ReadFromJsonAsync<GroundedResponse>();
         Assert.NotNull(approved);
-        Assert.Equal(ConstituentWorkflow.ApprovalAuthorityRole, approved.ApprovedBy);
+        Assert.Equal("trusted-test-reviewer", approved.ApprovedBy);
         Assert.NotEqual("untrusted-body-value", approved.ApprovedBy);
 
         var created = await factory.CreateClient().PostAsJsonAsync("/api/cases", new
@@ -101,6 +110,8 @@ public sealed class ApiTests(WebApplicationFactory<Program> factory) : IClassFix
             Content = JsonContent.Create(new { reviewer = "untrusted-body-value" })
         };
         approvalRequest.Headers.Add(ConstituentWorkflow.ApprovalAuthorityHeader, ConstituentWorkflow.ApprovalAuthorityRole);
+        approvalRequest.Headers.Add(ConstituentWorkflow.ApprovalTokenHeader, "test-approver-token");
+        approvalRequest.Headers.Add(ConstituentWorkflow.AuthenticatedReviewerHeader, "trusted-test-reviewer");
         var approval = await client.SendAsync(approvalRequest);
         Assert.Equal(HttpStatusCode.OK, approval.StatusCode);
 

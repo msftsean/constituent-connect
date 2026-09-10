@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using ConstituentConnect.Api;
 
+Environment.SetEnvironmentVariable("CONSTITUENT_CONNECT_APPROVER_TOKEN", "evaluation-token");
 var root = Catalog.FindRepositoryRoot();
 var workflow = new ConstituentWorkflow();
 var results = new List<EvaluationResult>();
@@ -53,7 +54,7 @@ static EvaluationResult EvaluateCore(ConstituentWorkflow workflow, JsonElement i
     if (expected.TryGetProperty("must_not_create_case", out _)) checks["approval_gate"] = Throws<InvalidOperationException>(() => workflow.CreateCase(result.Response.ResponseId));
     if (expected.TryGetProperty("multiple_work_items", out _))
     {
-        workflow.ApproveResponse(result.Response.ResponseId, "evaluation-reviewer", approverRole: ConstituentWorkflow.ApprovalAuthorityRole);
+        workflow.ApproveResponse(result.Response.ResponseId, "evaluation-reviewer", approverRole: ConstituentWorkflow.ApprovalAuthorityRole, approverToken: "evaluation-token");
         checks["multiple_work_items"] = workflow.CreateCase(result.Response.ResponseId).AgencyWorkItems.Count > 1;
     }
     if (expected.TryGetProperty("correction_capture", out _)) checks["correction_capture"] = true;

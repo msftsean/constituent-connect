@@ -6,10 +6,13 @@ public sealed class ConstituentWorkflow
 {
     private const string Disclosure = "This draft was generated with AI assistance and requires human review.";
     public const string ApprovalAuthorityHeader = "X-Local-Synthetic-Approver-Role";
+    public const string ApprovalTokenHeader = "X-Local-Synthetic-Approver-Token";
+    public const string AuthenticatedReviewerHeader = "X-Authenticated-Reviewer-ID";
     public const string ApprovalAuthorityRole = "human-reviewer";
     private static readonly Regex Emergency = new(@"\b(smoke|fire|trapped|shooting|gun|immediate danger|cannot breathe|not breathing|overdose|medical emergency|suicide|kill myself|active violence|bleeding badly)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex Historical = new(@"\b(last year|years ago|historically|old report|past incident)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex CurrentDanger = new(@"\b(now|right now|currently|at this moment|today|still|ongoing|active|happening|here|there is|there are|i am|we are|can't|cannot)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex CurrentFire = new(@"\b(?:there is|there's|in my|inside my|at my)\b.{0,40}\bfire\b|\bfire\b.{0,40}\b(?:now|right now|currently|today|ongoing|active)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex Injection = new(@"\b(ignore (all |your )?(previous |prior )?(rules|instructions)|system prompt|system instructions|hidden instructions|developer message|override (the )?(policy|route|safety)|route .* executive queue|do not follow.*policy)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex Discrimination = new(@"\b((slower|faster|lower priority|deny) queue.*(neighborhood|race|religion|sex|language)|(neighborhood|race|religion|sex|language).*(slower|faster|lower priority|deny) queue|route.*based on.*(race|religion|sex|neighborhood|disability))\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly (string Category, Regex Pattern)[] PiiPatterns =
@@ -46,20 +49,23 @@ public sealed class ConstituentWorkflow
         return result;
     }
 
-    public GroundedResponse ApproveResponse(string responseId, string reviewer, string? editedText = null, string decision = "approve", string? approverRole = null)
+    public GroundedResponse ApproveResponse(string responseId, string reviewer, string? editedText = null, string decision = "approve", string? approverRole = null, string? approverToken = null)
     {
         lock (_lock)
         {
             var result = GetResult(responseId);
-            if (!string.Equals(approverRole, ApprovalAuthorityRole, StringComparison.Ordinal))
-                throw new UnauthorizedAccessException($"Approval requires the local synthetic approver role '{ApprovalAuthorityRole}'.");
+            var configuredToken = Environment.GetEnvironmentVariable("CONSTITUENT_CONNECT_APPROVER_TOKEN");
+            if (!string.Equals(approverRole, ApprovalAuthorityRole, StringComparison.Ordinal) ||
+                string.IsNullOrWhiteSpace(configuredToken) ||
+                !string.Equals(approverToken, configuredToken, StringComparison.Ordinal))
+                throw new UnauthorizedAccessException("Approval requires configured authenticated approver credentials.");
             if (result.Response.ApprovalStatus != "pending") throw new InvalidOperationException("This response already has a human decision.");
             if (decision is not ("approve" or "reject")) throw new InvalidOperationException("Decision must be 'approve' or 'reject'.");
             var candidate = (editedText ?? result.Response.Draft).Trim();
             if (decision == "approve" && Regex.IsMatch(candidate, @"\b(guarantee|promise payment|approve.*automatically)\b", RegexOptions.IgnoreCase))
                 throw new InvalidOperationException("Edited response contains a prohibited commitment.");
             result.Response.ApprovalStatus = decision == "approve" ? "approved" : "rejected";
-            result.Response.ApprovedBy = ApprovalAuthorityRole;
+            result.Response.ApprovedBy = reviewer;
             result.Response.ApprovedText = decision == "approve" ? $"{candidate} {Disclosure}".Trim() : null;
             return result.Response;
         }
@@ -97,7 +103,7 @@ public sealed class ConstituentWorkflow
         var injection = Injection.IsMatch(content ?? "");
         if (injection) redacted = Injection.Replace(redacted, "[IGNORED UNTRUSTED INSTRUCTION]");
         var hasEmergencyLanguage = Emergency.IsMatch(content ?? "");
-        var emergency = hasEmergencyLanguage && (!Historical.IsMatch(content ?? "") || CurrentDanger.IsMatch(content ?? ""));
+        var emergency = hasEmergencyLanguage && (!Historical.IsMatch(content ?? "") || CurrentDanger.IsMatch(content ?? "") || CurrentFire.IsMatch(content ?? ""));
         var detectedLanguage = !string.IsNullOrWhiteSpace(language) && language != "und" ? language :
             Regex.Matches(content ?? "", @"\b(necesito|licencia|impuesto|ayuda|solicitud|permiso|gracias)\b", RegexOptions.IgnoreCase).Count >= 2 ? "es" : "en";
         var summary = BuildSafeSummary(redacted, findings, injection, emergency);

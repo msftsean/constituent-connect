@@ -71,6 +71,21 @@ PYTHONPATH=src python -m constituent_connect.eval_runner
 
 On systems with GNU Make, `make test` and `make eval` are equivalent.
 
+### C#/.NET implementation
+
+The `dotnet/` solution is a deterministic ASP.NET Core Minimal API implementation
+that consumes the same synthetic catalog and evaluation datasets. It makes zero
+generative-model calls: Safety/Privacy and Routing are local deterministic gates,
+emergencies stop routine processing without dispatch, and every response remains a
+human-review draft before a synthetic case can be created. The packaged browser UI
+at the application root supports the end-to-end flow.
+
+```powershell
+dotnet run --project dotnet\ConstituentConnect.Api
+dotnet test dotnet\ConstituentConnect.Tests --no-restore
+dotnet run --project dotnet\ConstituentConnect.Evals
+```
+
 The evaluation command consumes `evals/datasets/core.jsonl` and `evals/datasets/red-team.jsonl`. It writes `reports/evaluation.json` and `reports/evaluation.html` and exits nonzero when the release gate fails.
 
 ## API

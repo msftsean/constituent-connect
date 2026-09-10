@@ -87,13 +87,13 @@ class ConstituentConnectHandler(BaseHTTPRequestHandler):
                     not configured_token
                     or self.headers.get("X-Approver-Token") != configured_token
                     or self.headers.get("X-Approval-Role") != "approver"
-                    or not self.headers.get("X-Authenticated-Reviewer-ID")
+                    or not os.environ.get("CONSTITUENT_CONNECT_APPROVER_ID")
                 ):
                     self._json({"error": "Authenticated approver authorization is required."}, HTTPStatus.FORBIDDEN)
                     return
                 response = self.workflow.approve_response(
                     approval_match.group(1),
-                    self.headers["X-Authenticated-Reviewer-ID"],
+                    os.environ["CONSTITUENT_CONNECT_APPROVER_ID"],
                     payload.get("edited_text"),
                     payload.get("decision", "approve"),
                 )

@@ -11,6 +11,7 @@ from constituent_connect.workflow import ConstituentConnectWorkflow
 class FastApiAdapterTests(unittest.TestCase):
     def setUp(self) -> None:
         os.environ["CONSTITUENT_CONNECT_APPROVER_TOKEN"] = "test-approver-token"
+        os.environ["CONSTITUENT_CONNECT_APPROVER_ID"] = "test-configured-reviewer"
         self.client = TestClient(create_app(ConstituentConnectWorkflow()))
         self.payload = {
             "channel": "web",
@@ -48,7 +49,7 @@ class FastApiAdapterTests(unittest.TestCase):
         approved = self.client.post(
             "/api/approval",
             json={"response_id": response_id, "reviewer": "ignored"},
-            headers={"X-Authenticated-Reviewer-ID": "api-reviewer", "X-Approval-Role": "approver", "X-Approver-Token": "test-approver-token"},
+            headers={"X-Approval-Role": "approver", "X-Approver-Token": "test-approver-token"},
         )
         case = self.client.post("/api/cases", json={"response_id": response_id})
         self.assertEqual(200, approved.status_code)
@@ -61,7 +62,7 @@ class FastApiAdapterTests(unittest.TestCase):
         approved = self.client.post(
             f"/api/responses/{response_id}/approve",
             json={"reviewer": "ignored"},
-            headers={"X-Authenticated-Reviewer-ID": "legacy-reviewer", "X-Approval-Role": "approver", "X-Approver-Token": "test-approver-token"},
+            headers={"X-Approval-Role": "approver", "X-Approver-Token": "test-approver-token"},
         )
 
         self.assertEqual(200, approved.status_code)

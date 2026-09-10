@@ -25,7 +25,6 @@ from .workflow import ConstituentConnectWorkflow
 
 CORRELATION_HEADER = "X-Correlation-ID"
 APPROVER_TOKEN_HEADER = "X-Approver-Token"
-AUTHENTICATED_REVIEWER_HEADER = "X-Authenticated-Reviewer-ID"
 
 
 def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
@@ -111,27 +110,26 @@ def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
     async def approval(
         payload: ApprovalRequest,
         request: Request,
-        reviewer_id: str | None = Header(default=None, alias=AUTHENTICATED_REVIEWER_HEADER),
         approval_role: str | None = Header(default=None, alias="X-Approval-Role"),
         approver_token: str | None = Header(default=None, alias=APPROVER_TOKEN_HEADER),
     ) -> dict[str, Any]:
         if not payload.response_id:
             raise ValueError("response_id is required.")
         configured_token = os.environ.get("CONSTITUENT_CONNECT_APPROVER_TOKEN")
+        configured_reviewer = os.environ.get("CONSTITUENT_CONNECT_APPROVER_ID")
         if (
             not configured_token
             or not approver_token
             or approver_token != configured_token
-            or not reviewer_id
+            or not configured_reviewer
             or approval_role != "approver"
         ):
             raise ValueError(
-                "Authenticated approver headers X-Authenticated-Reviewer-ID and "
-                "X-Approval-Role: approver plus a configured approval token are required."
+                "A configured approval token, approver identity, and approver role are required."
             )
         response = service.approve_response(
             payload.response_id,
-            reviewer_id,
+            configured_reviewer,
             payload.edited_text,
             payload.decision,
         )
@@ -142,7 +140,6 @@ def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
         response_id: str,
         payload: ApprovalRequest,
         request: Request,
-        reviewer_id: str | None = Header(default=None, alias=AUTHENTICATED_REVIEWER_HEADER),
         approval_role: str | None = Header(default=None, alias="X-Approval-Role"),
         approver_token: str | None = Header(default=None, alias=APPROVER_TOKEN_HEADER),
     ) -> dict[str, Any]:
@@ -151,7 +148,6 @@ def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
         return await approval(
             payload.model_copy(update={"response_id": response_id}),
             request,
-            reviewer_id,
             approval_role,
             approver_token,
         )

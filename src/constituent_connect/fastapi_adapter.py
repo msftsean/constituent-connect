@@ -65,7 +65,7 @@ def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
         inquiry = service.assess_intake(
             payload.message, payload.channel, payload.language
         )
-        return _with_correlation({"data": to_dict(inquiry)}, request)
+        return _with_correlation({"data": _safe_inquiry(inquiry)}, request)
 
     @app.post("/api/classify", response_model=ApiResponse)
     async def classify(payload: InquiryRequest, request: Request) -> dict[str, Any]:
@@ -88,7 +88,7 @@ def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
     @app.post("/api/respond", response_model=ApiResponse)
     async def respond(payload: InquiryRequest, request: Request) -> dict[str, Any]:
         result = service.process(payload.message, payload.channel, payload.language)
-        return _with_correlation({"data": to_dict(result)}, request)
+        return _with_correlation({"data": _safe_result(result)}, request)
 
     @app.post("/api/route", response_model=ApiResponse)
     async def route(payload: InquiryRequest, request: Request) -> dict[str, Any]:
@@ -106,13 +106,21 @@ def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
 
     @app.post("/api/approval", response_model=ApiResponse)
     async def approval(
-        payload: ApprovalRequest, request: Request
+        payload: ApprovalRequest,
+        request: Request,
+        reviewer_id: str | None = Header(default=None, alias="X-Reviewer-ID"),
+        approval_role: str | None = Header(default=None, alias="X-Approval-Role"),
     ) -> dict[str, Any]:
         if not payload.response_id:
             raise ValueError("response_id is required.")
+        if not reviewer_id or approval_role != "approver":
+            raise ValueError(
+                "Authenticated approver headers X-Reviewer-ID and "
+                "X-Approval-Role: approver are required."
+            )
         response = service.approve_response(
             payload.response_id,
-            payload.reviewer,
+            reviewer_id,
             payload.edited_text,
             payload.decision,
         )
@@ -120,11 +128,20 @@ def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
 
     @app.post("/api/responses/{response_id}/approve", response_model=ApiResponse)
     async def approve_legacy(
-        response_id: str, payload: ApprovalRequest, request: Request
+        response_id: str,
+        payload: ApprovalRequest,
+        request: Request,
+        reviewer_id: str | None = Header(default=None, alias="X-Reviewer-ID"),
+        approval_role: str | None = Header(default=None, alias="X-Approval-Role"),
     ) -> dict[str, Any]:
         if payload.response_id and payload.response_id != response_id:
             raise ValueError("Path response_id must match the request response_id.")
-        return await approval(payload.model_copy(update={"response_id": response_id}), request)
+        return await approval(
+            payload.model_copy(update={"response_id": response_id}),
+            request,
+            reviewer_id,
+            approval_role,
+        )
 
     @app.post("/api/cases", response_model=ApiResponse, status_code=201)
     async def create_case(
@@ -151,6 +168,22 @@ def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
 
 def _with_correlation(payload: dict[str, Any], request: Request) -> dict[str, Any]:
     return {**payload, "correlation_id": request.state.correlation_id}
+
+
+def _safe_inquiry(inquiry: Any) -> dict[str, Any]:
+    data = to_dict(inquiry)
+    data.pop("message_id", None)
+    data.pop("raw_content", None)
+    data.pop("attachments", None)
+    return data
+
+
+def _safe_result(result: Any) -> dict[str, Any]:
+    data = to_dict(result)
+    data["message"].pop("raw_content", None)
+    data["message"].pop("attachments", None)
+    data["message"].pop("consent_flags", None)
+    return data
 
 
 def _error(

@@ -15,12 +15,13 @@ from ..retention import RetentionPolicy
 class SafetyPrivacyAgent:
     authoritative = True
     uses_generation = False
-    EMERGENCY_TERMS = re.compile(
-        r"\b(?:smoke|fire|trapped|shooting|gun|immediate danger|"
-        r"cannot breathe|not breathing|overdose|medical emergency|"
-        r"suicide|kill myself|active violence|bleeding badly)\b",
+    CURRENT_EMERGENCY_TERMS = re.compile(
+        r"\b(?:smoke|trapped|shooting|gun|immediate danger|cannot breathe|"
+        r"not breathing|overdose|medical emergency|suicide|kill myself|"
+        r"active violence|bleeding badly)\b",
         re.IGNORECASE,
     )
+    FIRE_TERM = re.compile(r"\bfire\b", re.IGNORECASE)
     HISTORICAL_TERMS = re.compile(
         r"\b(?:last year|years ago|historically|old report|past incident)\b",
         re.IGNORECASE,
@@ -38,8 +39,9 @@ class SafetyPrivacyAgent:
         injection = contains_prompt_injection(original)
         discriminatory = contains_discriminatory_instruction(original)
         neutralized = neutralize_untrusted_instructions(redaction.text)
-        emergency = bool(self.EMERGENCY_TERMS.search(original)) and not bool(
-            self.HISTORICAL_TERMS.search(original)
+        historical = bool(self.HISTORICAL_TERMS.search(original))
+        emergency = bool(self.CURRENT_EMERGENCY_TERMS.search(original)) or (
+            bool(self.FIRE_TERM.search(original)) and not historical
         )
         language = self._detect_language(original, message.language)
         summary = self._summarize(neutralized)

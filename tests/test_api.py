@@ -45,7 +45,8 @@ class FastApiAdapterTests(unittest.TestCase):
 
         approved = self.client.post(
             "/api/approval",
-            json={"response_id": response_id, "reviewer": "api-reviewer"},
+            json={"response_id": response_id, "reviewer": "ignored"},
+            headers={"X-Reviewer-ID": "api-reviewer", "X-Approval-Role": "approver"},
         )
         case = self.client.post("/api/cases", json={"response_id": response_id})
         self.assertEqual(200, approved.status_code)
@@ -57,7 +58,8 @@ class FastApiAdapterTests(unittest.TestCase):
 
         approved = self.client.post(
             f"/api/responses/{response_id}/approve",
-            json={"reviewer": "legacy-reviewer"},
+            json={"reviewer": "ignored"},
+            headers={"X-Reviewer-ID": "legacy-reviewer", "X-Approval-Role": "approver"},
         )
 
         self.assertEqual(200, approved.status_code)
@@ -75,6 +77,31 @@ class FastApiAdapterTests(unittest.TestCase):
         self.assertEqual("error-correlation", missing.json()["correlation_id"])
         self.assertEqual(422, invalid.status_code)
         self.assertIn("validation", invalid.json()["error"].lower())
+
+    def test_approval_requires_authorized_approver_and_response_redacts_raw_pii(self) -> None:
+        response = self.client.post(
+            "/api/respond",
+            json={"channel": "web", "message": "My SSN is 123-45-6789; I need a license."},
+        )
+        response_id = response.json()["data"]["response"]["response_id"]
+        self.assertNotIn("123-45-6789", response.text)
+        unauthorized = self.client.post(
+            "/api/approval",
+            json={"response_id": response_id, "reviewer": "attacker"},
+        )
+        self.assertEqual(400, unauthorized.status_code)
+
+    def test_current_emergency_wins_over_historical_reference(self) -> None:
+        response = self.client.post(
+            "/api/respond",
+            json={
+                "channel": "web",
+                "message": "Last year I read an old report about a fire; today smoke is filling my apartment and someone is trapped.",
+            },
+        )
+        data = response.json()["data"]
+        self.assertTrue(data["inquiry"]["emergency_signal"])
+        self.assertEqual("emergency_exit", data["route"]["status"])
 
     @patch("constituent_connect.fastapi_adapter.run_evaluations")
     def test_evaluation_endpoint_returns_report(self, run_evaluations) -> None:

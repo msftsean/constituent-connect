@@ -22,6 +22,11 @@ class SafetyPrivacyAgent:
         re.IGNORECASE,
     )
     FIRE_TERM = re.compile(r"\bfire\b", re.IGNORECASE)
+    CURRENT_FIRE = re.compile(
+        r"\b(?:there is|there's|see|seeing|smell|smelling|in my|inside my|at my)\b.{0,40}\bfire\b"
+        r"|\bfire\b.{0,40}\b(?:now|right now|currently|today|ongoing|active)\b",
+        re.IGNORECASE,
+    )
     HISTORICAL_TERMS = re.compile(
         r"\b(?:last year|years ago|historically|old report|past incident)\b",
         re.IGNORECASE,
@@ -40,9 +45,9 @@ class SafetyPrivacyAgent:
         discriminatory = contains_discriminatory_instruction(original)
         neutralized = neutralize_untrusted_instructions(redaction.text)
         historical = bool(self.HISTORICAL_TERMS.search(original))
-        emergency = bool(self.CURRENT_EMERGENCY_TERMS.search(original)) or (
-            bool(self.FIRE_TERM.search(original)) and not historical
-        )
+        emergency = bool(self.CURRENT_EMERGENCY_TERMS.search(original)) or bool(
+            self.CURRENT_FIRE.search(original)
+        ) or (bool(self.FIRE_TERM.search(original)) and not historical)
         language = self._detect_language(original, message.language)
         summary = self._summarize(neutralized)
         guidance = None

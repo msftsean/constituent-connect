@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -75,15 +76,24 @@ class ConstituentConnectHandler(BaseHTTPRequestHandler):
                     payload.get("channel", "web"),
                     payload.get("language"),
                 )
-                self._json(to_dict(result))
+                self._json(self._safe_result(result))
                 return
             approval_match = re.fullmatch(
                 r"/api/responses/([^/]+)/approve", self.path
             )
             if approval_match:
+                configured_token = os.environ.get("CONSTITUENT_CONNECT_APPROVER_TOKEN")
+                if (
+                    not configured_token
+                    or self.headers.get("X-Approver-Token") != configured_token
+                    or self.headers.get("X-Approval-Role") != "approver"
+                    or not self.headers.get("X-Authenticated-Reviewer-ID")
+                ):
+                    self._json({"error": "Authenticated approver authorization is required."}, HTTPStatus.FORBIDDEN)
+                    return
                 response = self.workflow.approve_response(
                     approval_match.group(1),
-                    payload.get("reviewer", "local-human-reviewer"),
+                    self.headers["X-Authenticated-Reviewer-ID"],
                     payload.get("edited_text"),
                     payload.get("decision", "approve"),
                 )
@@ -117,6 +127,14 @@ class ConstituentConnectHandler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         self.wfile.write(content)
+
+    @staticmethod
+    def _safe_result(result: Any) -> dict[str, Any]:
+        data = to_dict(result)
+        data["message"].pop("raw_content", None)
+        data["message"].pop("attachments", None)
+        data["message"].pop("consent_flags", None)
+        return data
 
     def log_message(self, format: str, *args: object) -> None:
         print(f"[http] {self.address_string()} {format % args}")

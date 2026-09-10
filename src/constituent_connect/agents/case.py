@@ -82,7 +82,7 @@ class CaseAgent:
             clause for clause in clauses
             if terms and any(term in clause.lower() for term in terms)
         ]
-        detail = " ".join(scoped)[:240]
+        detail = f"Matched service terms: {', '.join(terms)}" if terms else ""
         if not detail:
             detail = f"Constituent requested help with {service_name}."
         return f"Service-specific handoff for {service_name}: {detail}"

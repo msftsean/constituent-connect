@@ -39,6 +39,7 @@ public sealed class WorkflowTests
     public void Approving_a_response_is_required_before_creating_scoped_case()
     {
         Environment.SetEnvironmentVariable("CONSTITUENT_CONNECT_APPROVER_TOKEN", "test-approver-token");
+        Environment.SetEnvironmentVariable("CONSTITUENT_CONNECT_APPROVER_ID", "test-configured-reviewer");
         var workflow = new ConstituentWorkflow();
         var result = workflow.Process(
             "My business move affects both my license and tax registration.", "email");

@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using ConstituentConnect.Api;
 
 Environment.SetEnvironmentVariable("CONSTITUENT_CONNECT_APPROVER_TOKEN", "evaluation-token");
+Environment.SetEnvironmentVariable("CONSTITUENT_CONNECT_APPROVER_ID", "evaluation-reviewer");
 var root = Catalog.FindRepositoryRoot();
 var workflow = new ConstituentWorkflow();
 var results = new List<EvaluationResult>();

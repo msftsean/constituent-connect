@@ -20,8 +20,7 @@ app.MapPost("/api/responses/{responseId}/approve", (string responseId, ApprovalR
     {
         var approverRole = httpRequest.Headers[ConstituentWorkflow.ApprovalAuthorityHeader].ToString();
         var approverToken = httpRequest.Headers[ConstituentWorkflow.ApprovalTokenHeader].ToString();
-        var authenticatedReviewer = httpRequest.Headers[ConstituentWorkflow.AuthenticatedReviewerHeader].ToString();
-        return Results.Ok(workflow.ApproveResponse(responseId, authenticatedReviewer, request.EditedText, request.Decision, approverRole, approverToken));
+        return Results.Ok(workflow.ApproveResponse(responseId, request.Reviewer, request.EditedText, request.Decision, approverRole, approverToken));
     }
     catch (KeyNotFoundException exception) { return Results.NotFound(new { error = exception.Message }); }
     catch (UnauthorizedAccessException exception) { return Results.Json(new { error = exception.Message }, statusCode: StatusCodes.Status403Forbidden); }

@@ -7,7 +7,6 @@ public sealed class ConstituentWorkflow
     private const string Disclosure = "This draft was generated with AI assistance and requires human review.";
     public const string ApprovalAuthorityHeader = "X-Local-Synthetic-Approver-Role";
     public const string ApprovalTokenHeader = "X-Local-Synthetic-Approver-Token";
-    public const string AuthenticatedReviewerHeader = "X-Authenticated-Reviewer-ID";
     public const string ApprovalAuthorityRole = "human-reviewer";
     private static readonly Regex Emergency = new(@"\b(smoke|fire|trapped|shooting|gun|immediate danger|cannot breathe|not breathing|overdose|medical emergency|suicide|kill myself|active violence|bleeding badly)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex Historical = new(@"\b(last year|years ago|historically|old report|past incident)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -55,9 +54,11 @@ public sealed class ConstituentWorkflow
         {
             var result = GetResult(responseId);
             var configuredToken = Environment.GetEnvironmentVariable("CONSTITUENT_CONNECT_APPROVER_TOKEN");
+            var configuredReviewer = Environment.GetEnvironmentVariable("CONSTITUENT_CONNECT_APPROVER_ID");
             if (!string.Equals(approverRole, ApprovalAuthorityRole, StringComparison.Ordinal) ||
                 string.IsNullOrWhiteSpace(configuredToken) ||
-                !string.Equals(approverToken, configuredToken, StringComparison.Ordinal))
+                !string.Equals(approverToken, configuredToken, StringComparison.Ordinal) ||
+                string.IsNullOrWhiteSpace(configuredReviewer))
                 throw new UnauthorizedAccessException("Approval requires configured authenticated approver credentials.");
             if (result.Response.ApprovalStatus != "pending") throw new InvalidOperationException("This response already has a human decision.");
             if (decision is not ("approve" or "reject")) throw new InvalidOperationException("Decision must be 'approve' or 'reject'.");
@@ -65,7 +66,7 @@ public sealed class ConstituentWorkflow
             if (decision == "approve" && Regex.IsMatch(candidate, @"\b(guarantee|promise payment|approve.*automatically)\b", RegexOptions.IgnoreCase))
                 throw new InvalidOperationException("Edited response contains a prohibited commitment.");
             result.Response.ApprovalStatus = decision == "approve" ? "approved" : "rejected";
-            result.Response.ApprovedBy = reviewer;
+            result.Response.ApprovedBy = configuredReviewer;
             result.Response.ApprovedText = decision == "approve" ? $"{candidate} {Disclosure}".Trim() : null;
             return result.Response;
         }

@@ -14,13 +14,15 @@ app.MapPost("/api/intake", (IntakeRequest request, ConstituentWorkflow workflow)
     Results.Ok(workflow.AssessIntake(request.Message, request.Channel, request.Language)));
 app.MapPost("/api/respond", (IntakeRequest request, ConstituentWorkflow workflow) =>
     Results.Ok(workflow.Process(request.Message, request.Channel, request.Language)));
-app.MapPost("/api/responses/{responseId}/approve", (string responseId, ApprovalRequest request, ConstituentWorkflow workflow) =>
+app.MapPost("/api/responses/{responseId}/approve", (string responseId, ApprovalRequest request, HttpRequest httpRequest, ConstituentWorkflow workflow) =>
 {
     try
     {
-        return Results.Ok(workflow.ApproveResponse(responseId, request.Reviewer, request.EditedText, request.Decision));
+        var approverRole = httpRequest.Headers[ConstituentWorkflow.ApprovalAuthorityHeader].ToString();
+        return Results.Ok(workflow.ApproveResponse(responseId, request.Reviewer, request.EditedText, request.Decision, approverRole));
     }
     catch (KeyNotFoundException exception) { return Results.NotFound(new { error = exception.Message }); }
+    catch (UnauthorizedAccessException exception) { return Results.Json(new { error = exception.Message }, statusCode: StatusCodes.Status403Forbidden); }
     catch (InvalidOperationException exception) { return Results.Conflict(new { error = exception.Message }); }
 });
 app.MapPost("/api/cases", (CaseRequest request, ConstituentWorkflow workflow) =>

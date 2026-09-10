@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ConstituentConnect.Api;
 
 public sealed record IntakeRequest(string Message, string Channel = "web", string? Language = null);
@@ -9,7 +11,7 @@ public sealed record IntentCandidate(string ServiceId, string AgencyId, double S
 public sealed record Citation(string Title, string PublicUrl, string Excerpt);
 public sealed record TraceEvent(string Stage, string Outcome, IReadOnlyDictionary<string, object?> Details);
 public sealed record Inquiry(
-    string InquiryId, string Summary, string RedactedContent, string DetectedLanguage, IReadOnlyList<IntentCandidate> IntentCandidates,
+    string InquiryId, string Summary, [property: JsonIgnore] string RedactedContent, string DetectedLanguage, IReadOnlyList<IntentCandidate> IntentCandidates,
     bool EmergencySignal, bool InjectionDetected, bool DiscriminatoryInstructionDetected, IReadOnlyList<PiiFinding> PiiFindings,
     string? EmergencyGuidance, IReadOnlyList<TraceEvent> TransformationHistory);
 public sealed record RouteRecommendation(

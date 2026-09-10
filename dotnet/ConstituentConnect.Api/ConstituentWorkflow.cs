@@ -5,8 +5,11 @@ namespace ConstituentConnect.Api;
 public sealed class ConstituentWorkflow
 {
     private const string Disclosure = "This draft was generated with AI assistance and requires human review.";
+    public const string ApprovalAuthorityHeader = "X-Local-Synthetic-Approver-Role";
+    public const string ApprovalAuthorityRole = "human-reviewer";
     private static readonly Regex Emergency = new(@"\b(smoke|fire|trapped|shooting|gun|immediate danger|cannot breathe|not breathing|overdose|medical emergency|suicide|kill myself|active violence|bleeding badly)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex Historical = new(@"\b(last year|years ago|historically|old report|past incident)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex CurrentDanger = new(@"\b(now|right now|currently|at this moment|today|still|ongoing|active|happening|here|there is|there are|i am|we are|can't|cannot)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex Injection = new(@"\b(ignore (all |your )?(previous |prior )?(rules|instructions)|system prompt|system instructions|hidden instructions|developer message|override (the )?(policy|route|safety)|route .* executive queue|do not follow.*policy)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex Discrimination = new(@"\b((slower|faster|lower priority|deny) queue.*(neighborhood|race|religion|sex|language)|(neighborhood|race|religion|sex|language).*(slower|faster|lower priority|deny) queue|route.*based on.*(race|religion|sex|neighborhood|disability))\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly (string Category, Regex Pattern)[] PiiPatterns =
@@ -43,18 +46,20 @@ public sealed class ConstituentWorkflow
         return result;
     }
 
-    public GroundedResponse ApproveResponse(string responseId, string reviewer, string? editedText = null, string decision = "approve")
+    public GroundedResponse ApproveResponse(string responseId, string reviewer, string? editedText = null, string decision = "approve", string? approverRole = null)
     {
         lock (_lock)
         {
             var result = GetResult(responseId);
+            if (!string.Equals(approverRole, ApprovalAuthorityRole, StringComparison.Ordinal))
+                throw new UnauthorizedAccessException($"Approval requires the local synthetic approver role '{ApprovalAuthorityRole}'.");
             if (result.Response.ApprovalStatus != "pending") throw new InvalidOperationException("This response already has a human decision.");
             if (decision is not ("approve" or "reject")) throw new InvalidOperationException("Decision must be 'approve' or 'reject'.");
             var candidate = (editedText ?? result.Response.Draft).Trim();
             if (decision == "approve" && Regex.IsMatch(candidate, @"\b(guarantee|promise payment|approve.*automatically)\b", RegexOptions.IgnoreCase))
                 throw new InvalidOperationException("Edited response contains a prohibited commitment.");
             result.Response.ApprovalStatus = decision == "approve" ? "approved" : "rejected";
-            result.Response.ApprovedBy = string.IsNullOrWhiteSpace(reviewer) ? "human-reviewer" : reviewer.Trim();
+            result.Response.ApprovedBy = ApprovalAuthorityRole;
             result.Response.ApprovedText = decision == "approve" ? $"{candidate} {Disclosure}".Trim() : null;
             return result.Response;
         }
@@ -71,7 +76,7 @@ public sealed class ConstituentWorkflow
             var workItems = new[] { result.Route.PrimaryServiceId }.Concat(result.Route.SecondaryServiceIds)
                 .Select(serviceId => {
                     var service = _catalog.ServiceById(serviceId);
-                    return new AgencyWorkItem(serviceId, service.QueueId, $"Service-specific handoff for {service.Name}: {result.Inquiry.Summary}",
+                    return new AgencyWorkItem(serviceId, service.QueueId, BuildServiceScopedSummary(result.Inquiry, service),
                         "Contains only the redacted constituent summary needed for this synthetic service handoff.");
                 }).ToList();
             return new CaseRecord(NewId("case"), result.Inquiry.InquiryId, responseId, result.Inquiry.Summary, workItems, "open", workItems.Select(item => item.QueueId).ToList());
@@ -91,12 +96,11 @@ public sealed class ConstituentWorkflow
         if (sensitiveRequest && findings.Count == 0) findings.Add(new("sensitive_data_request", 1));
         var injection = Injection.IsMatch(content ?? "");
         if (injection) redacted = Injection.Replace(redacted, "[IGNORED UNTRUSTED INSTRUCTION]");
-        var emergency = Emergency.IsMatch(content ?? "") && !Historical.IsMatch(content ?? "");
+        var hasEmergencyLanguage = Emergency.IsMatch(content ?? "");
+        var emergency = hasEmergencyLanguage && (!Historical.IsMatch(content ?? "") || CurrentDanger.IsMatch(content ?? ""));
         var detectedLanguage = !string.IsNullOrWhiteSpace(language) && language != "und" ? language :
             Regex.Matches(content ?? "", @"\b(necesito|licencia|impuesto|ayuda|solicitud|permiso|gracias)\b", RegexOptions.IgnoreCase).Count >= 2 ? "es" : "en";
-        var summary = Regex.Replace(redacted.Replace("[IGNORED UNTRUSTED INSTRUCTION]", ""), @"\s+", " ").Trim();
-        if (summary.Length == 0) summary = "No safe service request was identified.";
-        if (summary.Length > 280) summary = summary[..277] + "...";
+        var summary = BuildSafeSummary(redacted, findings, injection, emergency);
         var guidance = emergency ? "If anyone is in immediate danger, call 911 now. This application cannot dispatch emergency services. A human contact-center escalation is required." : null;
         return new Inquiry(NewId("inq"), summary, redacted, detectedLanguage, [], emergency, injection, Discrimination.IsMatch(content ?? ""), findings, guidance,
             [new("safety_privacy", emergency ? "emergency_exit" : "routine_allowed", new Dictionary<string, object?> { ["model_calls"] = 0, ["pii_categories"] = findings.Select(f => f.Category).ToArray() })]);
@@ -143,5 +147,31 @@ public sealed class ConstituentWorkflow
     }
 
     private WorkflowResult GetResult(string id) => _results.TryGetValue(id, out var result) ? result : throw new KeyNotFoundException($"Unknown response ID: {id}");
+
+    private string BuildSafeSummary(string redacted, IReadOnlyList<PiiFinding> findings, bool injection, bool emergency)
+    {
+        if (emergency) return "Immediate danger was detected; routine service processing was stopped.";
+        if (injection) return "A routine service request contained untrusted instructions.";
+        var matchedServices = _catalog.Services
+            .Where(service => service.Keywords.Any(keyword => Regex.IsMatch(redacted, $@"\b{Regex.Escape(keyword)}\b", RegexOptions.IgnoreCase)))
+            .Select(service => service.Name)
+            .Distinct()
+            .ToList();
+        if (matchedServices.Count > 0) return $"Constituent requested guidance related to {string.Join(" and ", matchedServices)}.";
+        if (findings.Count > 0) return "Constituent requested public service guidance; sensitive details were redacted.";
+        return "Constituent requested public service guidance.";
+    }
+
+    private static string BuildServiceScopedSummary(Inquiry inquiry, Service service)
+    {
+        var matchedTerms = service.Keywords
+            .Where(keyword => Regex.IsMatch(inquiry.RedactedContent, $@"\b{Regex.Escape(keyword)}\b", RegexOptions.IgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(3)
+            .ToList();
+        var scope = matchedTerms.Count == 0 ? "the configured service" : string.Join(", ", matchedTerms);
+        return $"Service-specific handoff for {service.Name}: constituent requested guidance about {scope}.";
+    }
+
     private static string NewId(string prefix) => $"{prefix}-{Guid.NewGuid():N}"[..(prefix.Length + 13)];
 }

@@ -42,12 +42,36 @@ public sealed class WorkflowTests
         var result = workflow.Process(
             "My business move affects both my license and tax registration.", "email");
 
-        workflow.ApproveResponse(result.Response.ResponseId, "human-reviewer");
+        workflow.ApproveResponse(result.Response.ResponseId, "untrusted-body-value", approverRole: ConstituentWorkflow.ApprovalAuthorityRole);
         var created = workflow.CreateCase(result.Response.ResponseId);
 
         Assert.Equal("open", created.Status);
         Assert.Equal(2, created.AgencyWorkItems.Count);
         Assert.All(created.AgencyWorkItems, item => Assert.DoesNotContain("[REDACTED]", item.Summary));
+        Assert.DoesNotContain("tax registration", created.AgencyWorkItems.Single(item => item.ServiceId == "professional-licensing").Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("license", created.AgencyWorkItems.Single(item => item.ServiceId == "tax-registration").Summary, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Current_danger_overrides_historical_emergency_reference()
+    {
+        var result = new ConstituentWorkflow().Process(
+            "Last year there was a fire in this building, but there is smoke here now and someone is trapped.", "web");
+
+        Assert.True(result.Inquiry.EmergencySignal);
+        Assert.Equal("emergency_exit", result.Route.Status);
+        Assert.Null(result.Route.PrimaryServiceId);
+        Assert.Contains("cannot dispatch", result.Response.Draft, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Approval_rejects_without_the_explicit_local_authority_role()
+    {
+        var workflow = new ConstituentWorkflow();
+        var result = workflow.Process("Where do I apply for a replacement professional license?", "web");
+
+        Assert.Throws<UnauthorizedAccessException>(() =>
+            workflow.ApproveResponse(result.Response.ResponseId, "human-reviewer"));
     }
 
     [Theory]

@@ -80,6 +80,13 @@ emergencies stop routine processing without dispatch, and every response remains
 human-review draft before a synthetic case can be created. The packaged browser UI
 at the application root supports the end-to-end flow.
 
+For the local synthetic approval seam, the approval endpoint requires the exact
+header `X-Local-Synthetic-Approver-Role: human-reviewer`. This header represents
+the local test harness boundary only; it is not production authentication. The
+JSON `reviewer` field is untrusted display input and never grants approval
+authority. Internal constituent content is kept out of HTTP JSON responses, and
+cross-agency case work items receive service-scoped summaries.
+
 ```powershell
 dotnet run --project dotnet\ConstituentConnect.Api
 dotnet test dotnet\ConstituentConnect.Tests --no-restore

@@ -1,0 +1,27 @@
+[
+  {
+    "agency_id": "labor",
+    "name": "Synthetic Maryland Department of Labor",
+    "public_contact_url": "https://md.example.gov/labor/contact"
+  },
+  {
+    "agency_id": "comptroller",
+    "name": "Synthetic Office of the Comptroller",
+    "public_contact_url": "https://md.example.gov/taxes/contact"
+  },
+  {
+    "agency_id": "commerce",
+    "name": "Synthetic Maryland Department of Commerce",
+    "public_contact_url": "https://md.example.gov/business/contact"
+  },
+  {
+    "agency_id": "services",
+    "name": "Synthetic Maryland Service Navigation",
+    "public_contact_url": "https://md.example.gov/services"
+  },
+  {
+    "agency_id": "human-services",
+    "name": "Synthetic Maryland Human Services",
+    "public_contact_url": "https://md.example.gov/benefits/contact"
+  }
+]

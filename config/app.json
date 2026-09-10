@@ -1,0 +1,27 @@
+{
+  "application": {
+    "name": "Maryland Constituent Connect",
+    "mode": "local-synthetic",
+    "human_approval_required": true,
+    "emergency_dispatch_enabled": false
+  },
+  "routing": {
+    "minimum_confidence": 0.55,
+    "secondary_confidence": 0.34
+  },
+  "orchestration": {
+    "prefer_framework": false,
+    "max_steps": 16,
+    "timeout_seconds": 10
+  },
+  "privacy": {
+    "retain_raw_message_in_memory_only": true,
+    "include_raw_message_in_traces": false,
+    "case_summary_redacted": true
+  },
+  "features": {
+    "azure_ai_search": false,
+    "cosmos_db": false,
+    "communication_services": false
+  }
+}

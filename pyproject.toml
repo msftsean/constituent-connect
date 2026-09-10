@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "maryland-constituent-connect"
+version = "0.1.0"
+description = "Synthetic, local-first Maryland Constituent Connect accelerator foundation"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.30,<1",
+    "httpx2>=2.0,<3",
+]
+
+[project.scripts]
+constituent-connect = "constituent_connect.server:main"
+constituent-connect-api = "constituent_connect.fastapi_adapter:main"
+constituent-connect-eval = "constituent_connect.eval_runner:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+constituent_connect = ["web/*"]

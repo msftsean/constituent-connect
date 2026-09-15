@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import PROJECT_ROOT
-from .approval import resolve_approver
+from .approval import workshop_approval_session, resolve_approver
 from .eval_runner import run_evaluations
 from .models import to_dict
 from .workflow import ConstituentConnectWorkflow
@@ -27,6 +27,12 @@ class ConstituentConnectHandler(BaseHTTPRequestHandler):
             return
         if self.path == "/api/synthetic/inquiries":
             self._json({"items": self.workflow.catalog.sample_inquiries})
+            return
+        if self.path == "/api/workshop/approval-session":
+            try:
+                self._json(workshop_approval_session(self.workflow.catalog.settings))
+            except PermissionError as exc:
+                self._json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
             return
         asset = "index.html" if self.path in {"/", "/index.html"} else self.path.lstrip("/")
         if asset.startswith(("/", "\\")) or ".." in Path(asset).parts:

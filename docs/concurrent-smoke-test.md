@@ -7,7 +7,7 @@ constituent data.
 
 ## Procedure
 
-1. Start the local server with `make run`.
+1. Run `python scripts/readiness.py`, then start the local server with `make run`.
 2. Use only the synthetic sample inquiry IDs already provided by the
    application. Do not paste real messages, identifiers, or credentials.
 3. Submit a small batch of concurrent routine requests (the committed evidence

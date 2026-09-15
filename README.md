@@ -39,10 +39,10 @@ build the React frontend.
 cd constituent-connect
 python -m pip install -e .
 python scripts/readiness.py
-PYTHONPATH=src python -m constituent_connect.server
+PYTHONPATH=src python scripts/run_local.py
 ```
 
-Open <http://127.0.0.1:8000>. Use a sample inquiry, review the route and citations, edit the draft, approve it, then create a synthetic case. Local-synthetic approval uses the configured workshop reviewer in `config/app.json`; it is a training-only role assertion, not production authentication.
+Open <http://127.0.0.1:8000>. Use a sample inquiry, review the route and citations, edit the draft, approve it, then create a synthetic case. `scripts/readiness.py` creates an untracked local `.env` with a generated workshop approver token; the UI uses that token for the approval call. This local workshop identity is a training-only assertion protected by a generated local token, not production authentication.
 
 For the FastAPI service:
 

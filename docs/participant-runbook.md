@@ -41,9 +41,9 @@ Demonstrate a safe, human-reviewed path from a synthetic inquiry to a synthetic 
 3. Edit the response without adding promises.
 4. Approve it as the human reviewer and create the case.
 5. Confirm separate synthetic work items share only the redacted summary.
-6. If approval fails, use the provided UI or include `X-Approval-Role: approver`
-   in local API calls. Token-backed approval also requires coach-provided local
-   approver environment variables.
+6. If approval fails, run `python scripts/readiness.py` again, restart the app
+   with `make run`, and use the provided UI. Manual API calls require both
+   `X-Approval-Role: approver` and the generated local `X-Approver-Token`.
 
 ## Lab 6: Bring it home through configuration
 

@@ -9,7 +9,7 @@ from fastapi import FastAPI, Header, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from .approval import APPROVER_TOKEN_HEADER, resolve_approver
+from .approval import APPROVER_TOKEN_HEADER, workshop_approval_session, resolve_approver
 from .api_models import (
     ApiResponse,
     ApprovalRequest,
@@ -162,6 +162,13 @@ def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
         except KeyError as exc:
             raise KeyError(f"Unknown case ID: {case_id}") from exc
         return _with_correlation({"data": to_dict(case)}, request)
+
+    @app.get("/api/workshop/approval-session", response_model=ApiResponse)
+    async def approval_session(request: Request) -> dict[str, Any]:
+        return _with_correlation(
+            {"data": workshop_approval_session(service.catalog.settings)},
+            request,
+        )
 
     @app.post("/api/evals/run", response_model=ApiResponse, status_code=202)
     async def evaluations(request: Request) -> dict[str, Any]:

@@ -20,7 +20,7 @@ From the repository root, use Python 3.11 or newer:
 python -m pip install -e .
 python scripts/readiness.py
 PYTHONPATH=src python -m unittest discover -s tests -v
-PYTHONPATH=src python -m constituent_connect.server
+PYTHONPATH=src python scripts/run_local.py
 ```
 
 On systems with GNU Make, `make test` and `make run` are equivalent. To use the
@@ -29,8 +29,10 @@ React development experience, run `npm --prefix frontend ci` and
 
 Open <http://127.0.0.1:8000>. Confirm that the page identifies the local
 synthetic mode before entering a sample inquiry.
-The approve button uses the configured local workshop reviewer from
-`config/app.json`; no Azure credentials are required.
+The approve button uses the generated local approver token from the untracked
+`.env` created by `scripts/readiness.py`; no Azure credentials are required.
+That local workshop identity is a training-only assertion, not production
+authentication.
 
 ## 3. Follow the participant path
 

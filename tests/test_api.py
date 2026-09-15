@@ -4,14 +4,20 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
+from constituent_connect.approval import (
+    APPROVER_ID_ENV,
+    APPROVER_TOKEN_ENV,
+    LOCAL_WORKSHOP_APPROVAL_ENV,
+)
 from constituent_connect.fastapi_adapter import CORRELATION_HEADER, create_app
 from constituent_connect.workflow import ConstituentConnectWorkflow
 
 
 class FastApiAdapterTests(unittest.TestCase):
     def setUp(self) -> None:
-        os.environ.pop("CONSTITUENT_CONNECT_APPROVER_TOKEN", None)
-        os.environ.pop("CONSTITUENT_CONNECT_APPROVER_ID", None)
+        os.environ.pop(APPROVER_TOKEN_ENV, None)
+        os.environ.pop(APPROVER_ID_ENV, None)
+        os.environ.pop(LOCAL_WORKSHOP_APPROVAL_ENV, None)
         self.client = TestClient(create_app(ConstituentConnectWorkflow()))
         self.payload = {
             "channel": "web",
@@ -19,8 +25,13 @@ class FastApiAdapterTests(unittest.TestCase):
         }
 
     def tearDown(self) -> None:
-        os.environ.pop("CONSTITUENT_CONNECT_APPROVER_TOKEN", None)
-        os.environ.pop("CONSTITUENT_CONNECT_APPROVER_ID", None)
+        os.environ.pop(APPROVER_TOKEN_ENV, None)
+        os.environ.pop(APPROVER_ID_ENV, None)
+        os.environ.pop(LOCAL_WORKSHOP_APPROVAL_ENV, None)
+
+    def configure_approver(self) -> None:
+        os.environ[APPROVER_TOKEN_ENV] = "test-approver-token"
+        os.environ[APPROVER_ID_ENV] = "test-configured-reviewer"
 
     def test_health_propagates_supplied_correlation_id(self) -> None:
         response = self.client.get("/health", headers={CORRELATION_HEADER: "test-correlation"})
@@ -31,6 +42,7 @@ class FastApiAdapterTests(unittest.TestCase):
         self.assertEqual("local-synthetic", response.json()["mode"])
 
     def test_workflow_stage_endpoints_and_approval_gate(self) -> None:
+        self.configure_approver()
         intake = self.client.post("/api/intake", json=self.payload)
         classify = self.client.post("/api/classify", json=self.payload)
         route = self.client.post("/api/route", json=self.payload)
@@ -53,21 +65,28 @@ class FastApiAdapterTests(unittest.TestCase):
         approved = self.client.post(
             "/api/approval",
             json={"response_id": response_id, "reviewer": "ignored"},
-            headers={"X-Approval-Role": "approver"},
+            headers={
+                "X-Approval-Role": "approver",
+                "X-Approver-Token": "test-approver-token",
+            },
         )
         case = self.client.post("/api/cases", json={"response_id": response_id})
         self.assertEqual(200, approved.status_code)
-        self.assertEqual("local-workshop-reviewer", approved.json()["data"]["approved_by"])
+        self.assertEqual("test-configured-reviewer", approved.json()["data"]["approved_by"])
         self.assertEqual(201, case.status_code)
 
     def test_legacy_approval_path_does_not_require_duplicate_response_id(self) -> None:
+        self.configure_approver()
         response = self.client.post("/api/respond", json=self.payload)
         response_id = response.json()["data"]["response"]["response_id"]
 
         approved = self.client.post(
             f"/api/responses/{response_id}/approve",
             json={"reviewer": "ignored"},
-            headers={"X-Approval-Role": "approver"},
+            headers={
+                "X-Approval-Role": "approver",
+                "X-Approver-Token": "test-approver-token",
+            },
         )
 
         self.assertEqual(200, approved.status_code)
@@ -99,9 +118,21 @@ class FastApiAdapterTests(unittest.TestCase):
         )
         self.assertEqual(403, unauthorized.status_code)
 
-    def test_configured_approval_token_takes_precedence_over_local_workshop_mode(self) -> None:
-        os.environ["CONSTITUENT_CONNECT_APPROVER_TOKEN"] = "test-approver-token"
-        os.environ["CONSTITUENT_CONNECT_APPROVER_ID"] = "test-configured-reviewer"
+    def test_bare_approver_role_is_rejected_under_default_config(self) -> None:
+        response = self.client.post("/api/respond", json=self.payload)
+        response_id = response.json()["data"]["response"]["response_id"]
+
+        rejected = self.client.post(
+            "/api/approval",
+            json={"response_id": response_id},
+            headers={"X-Approval-Role": "approver"},
+        )
+
+        self.assertEqual(403, rejected.status_code)
+        self.assertIn("approval token", rejected.json()["error"])
+
+    def test_configured_approval_token_is_required(self) -> None:
+        self.configure_approver()
         response = self.client.post("/api/respond", json=self.payload)
         response_id = response.json()["data"]["response"]["response_id"]
 
@@ -122,6 +153,17 @@ class FastApiAdapterTests(unittest.TestCase):
         self.assertEqual(403, missing_token.status_code)
         self.assertEqual(200, approved.status_code)
         self.assertEqual("test-configured-reviewer", approved.json()["data"]["approved_by"])
+
+    def test_workshop_approval_session_requires_explicit_local_opt_in(self) -> None:
+        disabled = self.client.get("/api/workshop/approval-session")
+        self.assertEqual(403, disabled.status_code)
+
+        os.environ[LOCAL_WORKSHOP_APPROVAL_ENV] = "true"
+        self.configure_approver()
+        enabled = self.client.get("/api/workshop/approval-session")
+
+        self.assertEqual(200, enabled.status_code)
+        self.assertEqual("test-approver-token", enabled.json()["data"]["approver_token"])
 
     def test_current_emergency_wins_over_historical_reference(self) -> None:
         response = self.client.post(

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import secrets
 import sys
 import time
 from pathlib import Path
@@ -13,7 +14,14 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from constituent_connect.approval import resolve_approver  # noqa: E402
+from local_env import ENV_PATH, load_env, read_env_file, write_env_values  # noqa: E402
+from constituent_connect.approval import (  # noqa: E402
+    APPROVER_ID_ENV,
+    APPROVER_ROLE,
+    APPROVER_TOKEN_ENV,
+    LOCAL_WORKSHOP_APPROVAL_ENV,
+    resolve_approver,
+)
 from constituent_connect.eval_runner import run_evaluations  # noqa: E402
 from constituent_connect.workflow import ConstituentConnectWorkflow  # noqa: E402
 
@@ -24,6 +32,20 @@ AZURE_ENV_NAMES = (
     "AZURE_CLIENT_SECRET",
     "AZURE_SUBSCRIPTION_ID",
 )
+
+
+def ensure_local_workshop_env() -> dict[str, str]:
+    values = read_env_file()
+    updates: dict[str, str] = {}
+    if values.get(LOCAL_WORKSHOP_APPROVAL_ENV, "").lower() != "true":
+        updates[LOCAL_WORKSHOP_APPROVAL_ENV] = "true"
+    if not values.get(APPROVER_ID_ENV):
+        updates[APPROVER_ID_ENV] = "local-workshop-reviewer"
+    if not values.get(APPROVER_TOKEN_ENV):
+        updates[APPROVER_TOKEN_ENV] = secrets.token_urlsafe(32)
+    if updates:
+        write_env_values(updates)
+    return load_env()
 
 
 def check_json(path: Path) -> None:
@@ -69,14 +91,38 @@ def main() -> int:
     else:
         raise AssertionError("Case creation succeeded before approval.")
 
+    saved_env = {
+        name: os.environ.get(name)
+        for name in (
+            APPROVER_ID_ENV,
+            APPROVER_TOKEN_ENV,
+            LOCAL_WORKSHOP_APPROVAL_ENV,
+        )
+    }
+    for name in saved_env:
+        os.environ.pop(name, None)
     try:
         resolve_approver(workflow.catalog.settings, None, None)
     except PermissionError:
         pass
     else:
-        raise AssertionError("Approval resolved without an approver role.")
+        raise AssertionError("Approval resolved without a configured approver token.")
+    try:
+        resolve_approver(workflow.catalog.settings, APPROVER_ROLE, None)
+    except PermissionError:
+        pass
+    else:
+        raise AssertionError("Bare approver role header bypassed the approval token gate.")
+    for name, value in saved_env.items():
+        if value is not None:
+            os.environ[name] = value
 
-    reviewer = resolve_approver(workflow.catalog.settings, "approver", None)
+    env_values = ensure_local_workshop_env()
+    reviewer = resolve_approver(
+        workflow.catalog.settings,
+        APPROVER_ROLE,
+        env_values[APPROVER_TOKEN_ENV],
+    )
     approved = workflow.approve_response(result.response.response_id, reviewer)
     if approved.approved_by != "local-workshop-reviewer":
         raise AssertionError("Approval did not use the configured local workshop identity.")
@@ -111,6 +157,8 @@ def main() -> int:
             "case_blocked_before_approval": True,
             "local_workshop_identity": approved.approved_by,
             "case_created_after_approval": case.case_id,
+            "bare_role_rejected_by_default": True,
+            "local_env": str(ENV_PATH),
         },
         "emergency_boundary": emergency.route.status,
         "evaluation": eval_summary,

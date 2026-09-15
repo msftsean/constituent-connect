@@ -20,7 +20,7 @@
     "case_summary_redacted": true
   },
   "approval": {
-    "local_workshop_enabled": true,
+    "local_workshop_enabled": false,
     "local_workshop_approver_id": "local-workshop-reviewer",
     "required_role": "approver"
   },

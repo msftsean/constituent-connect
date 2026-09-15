@@ -1,0 +1,123 @@
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+import time
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from constituent_connect.approval import resolve_approver  # noqa: E402
+from constituent_connect.eval_runner import run_evaluations  # noqa: E402
+from constituent_connect.workflow import ConstituentConnectWorkflow  # noqa: E402
+
+
+AZURE_ENV_NAMES = (
+    "AZURE_CLIENT_ID",
+    "AZURE_TENANT_ID",
+    "AZURE_CLIENT_SECRET",
+    "AZURE_SUBSCRIPTION_ID",
+)
+
+
+def check_json(path: Path) -> None:
+    with path.open(encoding="utf-8") as handle:
+        json.load(handle)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Run local workshop readiness checks without Azure credentials."
+    )
+    parser.add_argument(
+        "--full-eval",
+        action="store_true",
+        help="Also run the full synthetic evaluation release gate.",
+    )
+    args = parser.parse_args()
+
+    start = time.perf_counter()
+    for relative in (
+        "config/app.json",
+        "data/agencies.json",
+        "data/services.json",
+        "data/public_knowledge.json",
+        "data/inquiries.json",
+    ):
+        check_json(ROOT / relative)
+
+    workflow = ConstituentConnectWorkflow()
+    result = workflow.process(
+        "Where do I apply for a replacement professional license?",
+        "web",
+    )
+    if result.route.primary_service_id != "professional-licensing":
+        raise AssertionError("Routine license inquiry did not route to professional licensing.")
+    if result.response.approval_status != "pending":
+        raise AssertionError("Draft response was not pending human approval.")
+    try:
+        workflow.create_case(result.response.response_id)
+    except ValueError as exc:
+        if "approval" not in str(exc).lower():
+            raise
+    else:
+        raise AssertionError("Case creation succeeded before approval.")
+
+    try:
+        resolve_approver(workflow.catalog.settings, None, None)
+    except PermissionError:
+        pass
+    else:
+        raise AssertionError("Approval resolved without an approver role.")
+
+    reviewer = resolve_approver(workflow.catalog.settings, "approver", None)
+    approved = workflow.approve_response(result.response.response_id, reviewer)
+    if approved.approved_by != "local-workshop-reviewer":
+        raise AssertionError("Approval did not use the configured local workshop identity.")
+    case = workflow.create_case(result.response.response_id)
+    if not case.case_id or not case.agency_work_items:
+        raise AssertionError("Approved response did not create a synthetic case.")
+
+    emergency = workflow.process(
+        "There is smoke filling my apartment and someone is trapped.",
+        "web",
+    )
+    if emergency.route.status != "emergency_exit" or emergency.route.primary_service_id:
+        raise AssertionError("Emergency inquiry did not exit routine routing.")
+
+    eval_summary = None
+    if args.full_eval:
+        eval_summary = run_evaluations(output_dir=ROOT / "reports" / "readiness")[
+            "summary"
+        ]
+        if eval_summary["release_gate"] != "pass":
+            raise AssertionError("Synthetic evaluation release gate failed.")
+
+    elapsed = round(time.perf_counter() - start, 2)
+    azure_env_present = [name for name in AZURE_ENV_NAMES if os.environ.get(name)]
+    output = {
+        "status": "ready",
+        "mode": workflow.catalog.settings["application"]["mode"],
+        "seconds": elapsed,
+        "azure_credentials_required": False,
+        "azure_credential_env_present": azure_env_present,
+        "approval": {
+            "case_blocked_before_approval": True,
+            "local_workshop_identity": approved.approved_by,
+            "case_created_after_approval": case.case_id,
+        },
+        "emergency_boundary": emergency.route.status,
+        "evaluation": eval_summary,
+    }
+    print(json.dumps(output, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

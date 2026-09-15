@@ -89,6 +89,7 @@ byId("approve").addEventListener("click", async () => {
   try {
     const data = await request(`/api/responses/${currentResponseId}/approve`, {
       method: "POST",
+      headers: {"Content-Type": "application/json", "X-Approval-Role": "approver"},
       body: JSON.stringify({
         reviewer: byId("reviewer").value,
         edited_text: byId("draft").value,

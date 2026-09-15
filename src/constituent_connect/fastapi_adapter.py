@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 from collections.abc import Callable
 from typing import Any
 from uuid import uuid4
@@ -10,6 +9,7 @@ from fastapi import FastAPI, Header, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from .approval import APPROVER_TOKEN_HEADER, resolve_approver
 from .api_models import (
     ApiResponse,
     ApprovalRequest,
@@ -24,7 +24,6 @@ from .workflow import ConstituentConnectWorkflow
 
 
 CORRELATION_HEADER = "X-Correlation-ID"
-APPROVER_TOKEN_HEADER = "X-Approver-Token"
 
 
 def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
@@ -51,6 +50,10 @@ def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
     @app.exception_handler(ValueError)
     async def value_error(request: Request, exc: ValueError):
         return _error(request, str(exc), 400)
+
+    @app.exception_handler(PermissionError)
+    async def permission_error(request: Request, exc: PermissionError):
+        return _error(request, str(exc), 403)
 
     @app.exception_handler(KeyError)
     async def key_error(request: Request, exc: KeyError):
@@ -115,21 +118,14 @@ def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
     ) -> dict[str, Any]:
         if not payload.response_id:
             raise ValueError("response_id is required.")
-        configured_token = os.environ.get("CONSTITUENT_CONNECT_APPROVER_TOKEN")
-        configured_reviewer = os.environ.get("CONSTITUENT_CONNECT_APPROVER_ID")
-        if (
-            not configured_token
-            or not approver_token
-            or approver_token != configured_token
-            or not configured_reviewer
-            or approval_role != "approver"
-        ):
-            raise ValueError(
-                "A configured approval token, approver identity, and approver role are required."
-            )
+        reviewer = resolve_approver(
+            service.catalog.settings,
+            approval_role,
+            approver_token,
+        )
         response = service.approve_response(
             payload.response_id,
-            configured_reviewer,
+            reviewer,
             payload.edited_text,
             payload.decision,
         )

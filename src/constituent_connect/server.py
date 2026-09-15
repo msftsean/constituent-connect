@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -11,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import PROJECT_ROOT
+from .approval import resolve_approver
 from .eval_runner import run_evaluations
 from .models import to_dict
 from .workflow import ConstituentConnectWorkflow
@@ -82,18 +82,14 @@ class ConstituentConnectHandler(BaseHTTPRequestHandler):
                 r"/api/responses/([^/]+)/approve", self.path
             )
             if approval_match:
-                configured_token = os.environ.get("CONSTITUENT_CONNECT_APPROVER_TOKEN")
-                if (
-                    not configured_token
-                    or self.headers.get("X-Approver-Token") != configured_token
-                    or self.headers.get("X-Approval-Role") != "approver"
-                    or not os.environ.get("CONSTITUENT_CONNECT_APPROVER_ID")
-                ):
-                    self._json({"error": "Authenticated approver authorization is required."}, HTTPStatus.FORBIDDEN)
-                    return
+                reviewer = resolve_approver(
+                    self.workflow.catalog.settings,
+                    self.headers.get("X-Approval-Role"),
+                    self.headers.get("X-Approver-Token"),
+                )
                 response = self.workflow.approve_response(
                     approval_match.group(1),
-                    os.environ["CONSTITUENT_CONNECT_APPROVER_ID"],
+                    reviewer,
                     payload.get("edited_text"),
                     payload.get("decision", "approve"),
                 )
@@ -108,6 +104,8 @@ class ConstituentConnectHandler(BaseHTTPRequestHandler):
                 self._json(report, HTTPStatus.ACCEPTED)
                 return
             self._json({"error": "Not found"}, HTTPStatus.NOT_FOUND)
+        except PermissionError as exc:
+            self._json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
         except (ValueError, KeyError, json.JSONDecodeError) as exc:
             self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
 

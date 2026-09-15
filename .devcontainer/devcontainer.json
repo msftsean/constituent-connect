@@ -10,6 +10,6 @@
       "onAutoForward": "notify"
     }
   },
-  "postCreateCommand": "python -m pip install -e .",
+  "postCreateCommand": "python -m pip install -e . && python scripts/readiness.py",
   "remoteUser": "vscode"
 }

@@ -3,9 +3,10 @@
 ## Before the session
 
 1. Confirm only synthetic data is present.
-2. Run `make test && make eval`; both must pass.
+2. Run `python scripts/readiness.py --full-eval`, then `make test && make eval`; all must pass.
 3. Start `make run` and verify `/health` reports `local-synthetic`.
-4. Keep the approved constitution, spec, evaluation plan, and emergency boundary visible.
+4. Review [workshop readiness](workshop-readiness.md) for claim labels, reset steps, and known issues.
+5. Keep the approved constitution, spec, evaluation plan, and emergency boundary visible.
 
 ## Demonstration prompts
 
@@ -24,6 +25,8 @@
 - Every supported factual response has a public citation; missing evidence causes abstention.
 - Routes include confidence, accountable service, alternatives, and a reason.
 - No synthetic case exists until a human approves the response.
+- Local workshop approval uses the configured reviewer in `config/app.json`; it
+  proves the human gate, not production authentication.
 - Emergency handling gives guidance and human escalation only; it never dispatches.
 
 ## Judging guide
@@ -53,6 +56,9 @@ Restore files after each exercise and rerun tests.
 - Unexpected route: inspect service keywords and the coach trace; do not add demographic rules.
 - Evaluation failure: inspect the failing check in `reports/evaluation.json`.
 - Azure command failure: stop. The infrastructure files are placeholders and are not deployment-ready.
+- Approval failure: confirm the UI sent `X-Approval-Role: approver`. If token-backed approval is enabled, confirm the local approver token and identity are set in the shell, not in source.
+- Reset: run `python scripts/reset_workshop.py`; restart the server to clear in-memory cases and approvals.
+- Azure command failure: stop. Azure validation requires a cloud identity and is outside the local workshop path.
 
 ## Escalation
 

@@ -35,9 +35,10 @@ azd env set AZURE_ENV_NAME workshop-dev
 azd env set AZURE_LOCATION eastus2
 ```
 
-For a controlled production rollout, pass non-secret deployment parameter overrides for
-replica bounds or retention using your approved CI/CD deployment command. Do not add
-credentials to parameter files or `azd` environment files.
+For a controlled production rollout, first review the application adapter and
+production authentication plan, then pass non-secret deployment parameter overrides
+for replica bounds or retention using your approved CI/CD deployment command. Do not
+add credentials to parameter files or `azd` environment files.
 
 ## Feature flags and safety boundaries
 
@@ -50,10 +51,11 @@ configured with:
 - `CC_HUMAN_APPROVAL_REQUIRED=true`
 - Azure AI Search and Cosmos feature indicators for a future identity-aware adapter
 
-The current local-first implementation does not consume the Azure data-plane endpoints.
-Do not enable data persistence, ACS actions, or automated sending until the application
-adapter has been reviewed for the same synthetic-only, no-dispatch, human-approval
-boundaries.
+The current local-first implementation does not consume the Azure data-plane endpoints
+and has not been production-validated against these resources. Do not enable data
+persistence, ACS actions, or automated sending until the application adapter and
+production authentication/authorization boundary have been reviewed for the same
+synthetic-only, no-dispatch, human-approval constraints.
 
 ## Network posture
 

@@ -21,7 +21,7 @@ The repository follows the proven All Clear delivery pattern while preserving a 
 - PII redaction, prompt-injection filtering, citations, abstention, cross-agency handoffs, and approval-gated case creation.
 - JSONL evaluation runner with JSON and HTML reports.
 - Standard-library `unittest` coverage, frontend build checks, devcontainer, CI, and
-  production-shaped Azure infrastructure.
+  production-shaped Azure infrastructure definitions.
 - Editable Draw.io architecture source using Fluent 2 system icons.
 
 The FastAPI adapter is the production-shaped API surface. The standard-library adapter
@@ -37,10 +37,12 @@ build the React frontend.
 
 ```bash
 cd constituent-connect
+python -m pip install -e .
+python scripts/readiness.py
 PYTHONPATH=src python -m constituent_connect.server
 ```
 
-Open <http://127.0.0.1:8000>. Use a sample inquiry, review the route and citations, edit the draft, approve it, then create a synthetic case.
+Open <http://127.0.0.1:8000>. Use a sample inquiry, review the route and citations, edit the draft, approve it, then create a synthetic case. Local-synthetic approval uses the configured workshop reviewer in `config/app.json`; it is a training-only role assertion, not production authentication.
 
 For the FastAPI service:
 
@@ -55,7 +57,7 @@ npm --prefix frontend ci
 npm --prefix frontend run dev
 ```
 
-Optional editable install:
+Optional console scripts after editable install:
 
 ```bash
 python -m pip install -e .
@@ -126,9 +128,7 @@ infra/             Azure Container Apps, identity, data, search, and monitoring
 baseline: managed identity, ACR, Key Vault, private Blob containers, Cosmos DB, AI
 Search, Application Insights, least-privilege RBAC, bounded scaling, and optional
 default-disabled Communication Services. The current application remains local-first
-until its Azure adapters are separately reviewed; no-dispatch and human-approval
-boundaries remain enforced. See `infra/README.md` for deployment, networking, and
-feature-flag constraints.
+until its Azure adapters and production authentication are separately reviewed; no-dispatch and human-approval boundaries remain enforced locally. Do not treat the Bicep definitions as a verified production deployment. See `infra/README.md` for deployment, networking, and feature-flag constraints.
 
 ## Architecture source
 
@@ -137,6 +137,7 @@ Open `design/constituent-connect-architecture.drawio` in drawio.com. The source 
 ## Workshop paths
 
 - [Fresh-user quickstart](docs/quickstart.md)
+- [Workshop readiness, preflight, reset, and evidence](docs/workshop-readiness.md)
 - [Coach site](docs/coach-site.html) and [coach runbook](docs/coach-runbook.md)
 - [Participant labs 00-06](docs/quickstart.md#3-follow-the-participant-path)
 - [Architecture HTML](docs/architecture.html) and [editable Drawio source](design/constituent-connect-architecture.drawio)

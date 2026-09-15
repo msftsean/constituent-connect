@@ -42,7 +42,7 @@
 ## Azure and workshop
 
 - [x] CC-040 Add Bicep and Azure Developer CLI configuration.
-- [x] CC-041 Deploy Container Apps, AI Search, Blob, Cosmos DB, Key Vault, and monitoring.
+- [x] CC-041 Define production-shaped Container Apps, AI Search, Blob, Cosmos DB, Key Vault, and monitoring infrastructure; deployment remains separately reviewed.
 - [x] CC-042 Add optional Communication Services extension behind a feature flag.
 - [x] CC-043 Create participant quickstart and seven progressive labs (Lab 00-06).
 - [x] CC-044 Create coach runbook, demo prompts, judging guide, and recovery steps.

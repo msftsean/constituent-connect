@@ -7,9 +7,10 @@ Demonstrate a safe, human-reviewed path from a synthetic inquiry to a synthetic 
 ## Lab 1: Start the local application
 
 1. Use Python 3.11 or newer.
-2. Run `make test`.
-3. Run `make run`.
-4. Open `http://127.0.0.1:8000` and confirm the local synthetic banner.
+2. Run `python scripts/readiness.py`.
+3. Run `make test`.
+4. Run `make run`.
+5. Open `http://127.0.0.1:8000` and confirm the local synthetic banner.
 
 ## Lab 2: Routine grounded response
 
@@ -40,6 +41,9 @@ Demonstrate a safe, human-reviewed path from a synthetic inquiry to a synthetic 
 3. Edit the response without adding promises.
 4. Approve it as the human reviewer and create the case.
 5. Confirm separate synthetic work items share only the redacted summary.
+6. If approval fails, use the provided UI or include `X-Approval-Role: approver`
+   in local API calls. Token-backed approval also requires coach-provided local
+   approver environment variables.
 
 ## Lab 6: Bring it home through configuration
 

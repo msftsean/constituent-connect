@@ -49,7 +49,8 @@ A participant adds a synthetic agency, service taxonomy, public FAQ, and routing
 - FR-012: Ignore prompt-injection instructions in constituent messages and retrieved content.
 - FR-013: Capture corrections and use them as evaluation signals, not unreviewed policy.
 - FR-014: Expose trace, retrieval evidence, routing scores, safety checks, latency, and cost to coaches.
-- FR-015: Run locally with synthetic data and deploy through Azure Developer CLI.
+- FR-015: Run locally with synthetic data and provide Azure Developer CLI
+  infrastructure definitions for a separately reviewed deployment.
 - FR-016: Tell constituents when a response is AI-assisted, keep that disclosure visible in the approved response, and record the disclosure in the audit trail.
 - FR-017: Capture human edits, approvals, rejections, and reroutes as evaluation signals without changing policy or routing configuration automatically.
 
@@ -68,7 +69,8 @@ A participant adds a synthetic agency, service taxonomy, public FAQ, and routing
 - Supported responses meet 95% citation precision and coverage.
 - PII redaction passes every critical test.
 - A participant adds one agency and three service routes through configuration in under 30 minutes.
-- A fresh user can complete the intake-to-approved-response demonstration in under 5 minutes.
+- A fresh user can complete the local intake-to-approved-response demonstration
+  in under 5 minutes after the devcontainer post-create finishes.
 
 ## Acceptance scenarios
 

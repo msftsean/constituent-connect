@@ -17,6 +17,8 @@ emergency details.
 From the repository root, use Python 3.11 or newer:
 
 ```bash
+python -m pip install -e .
+python scripts/readiness.py
 PYTHONPATH=src python -m unittest discover -s tests -v
 PYTHONPATH=src python -m constituent_connect.server
 ```
@@ -27,6 +29,8 @@ React development experience, run `npm --prefix frontend ci` and
 
 Open <http://127.0.0.1:8000>. Confirm that the page identifies the local
 synthetic mode before entering a sample inquiry.
+The approve button uses the configured local workshop reviewer from
+`config/app.json`; no Azure credentials are required.
 
 ## 3. Follow the participant path
 
@@ -55,4 +59,5 @@ Run the commands above followed by
 `PYTHONPATH=src python -m constituent_connect.eval_runner`, inspect
 `reports/evaluation.html`, and use the
 [evaluation scorecard](evaluation-scorecard.md) to record observations. Stop
-the local server when the workshop ends.
+the local server when the workshop ends. For reset and recovery steps, see
+[workshop readiness](workshop-readiness.md).

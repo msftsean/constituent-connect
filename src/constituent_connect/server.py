@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -146,8 +147,8 @@ class ConstituentConnectHandler(BaseHTTPRequestHandler):
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the local Constituent Connect UI.")
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--host", default=os.getenv("CC_HOST", "0.0.0.0"))
+    parser.add_argument("--port", type=int, default=int(os.getenv("CC_PORT", "8000")))
     args = parser.parse_args()
     server = ThreadingHTTPServer((args.host, args.port), ConstituentConnectHandler)
     print(f"Constituent Connect running at http://{args.host}:{args.port}")

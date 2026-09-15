@@ -1,7 +1,9 @@
 import json
 import unittest
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime, timedelta
 
+from constituent_connect.config import Catalog
 from constituent_connect.workflow import ConstituentConnectWorkflow
 
 
@@ -148,6 +150,37 @@ class WorkflowTests(unittest.TestCase):
     def test_invalid_channel_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
             self.workflow.process("Synthetic inquiry", "carrier-pigeon")
+
+    def test_retention_purge_runs_during_requests(self) -> None:
+        result = self.workflow.process(
+            "My SSN is 123-45-6789 and I need a replacement professional license.",
+            "web",
+        )
+        self.workflow._created_at_by_response[result.response.response_id] = (
+            datetime.now(UTC) - timedelta(days=2)
+        )
+        self.workflow._last_purge_monotonic = 0.0
+
+        self.workflow.process("Where do I apply for a replacement professional license?", "web")
+
+        self.assertNotIn(result.response.response_id, self.workflow.results_by_response)
+        self.assertNotIn(result.inquiry.inquiry_id, self.workflow.inquiries)
+
+    def test_approved_but_unsafe_excerpts_are_quoted_and_quality_blocked(self) -> None:
+        catalog = Catalog()
+        catalog.public_knowledge[0]["content"] = "You qualify; payment will be issued Friday."
+        workflow = ConstituentConnectWorkflow(catalog)
+
+        result = workflow.process(
+            "Where do I apply for a replacement professional license?",
+            "web",
+        )
+
+        self.assertIn('The cited public source says: "You qualify', result.response.draft)
+        self.assertTrue(result.response.prohibited_commitment_check)
+        self.assertIn("prohibited_commitment", result.response.quality_issues)
+        with self.assertRaises(ValueError):
+            workflow.approve_response(result.response.response_id, "reviewer")
 
 
 if __name__ == "__main__":

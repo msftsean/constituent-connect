@@ -27,7 +27,8 @@ The repository follows the proven All Clear delivery pattern while preserving a 
 The FastAPI adapter is the production-shaped API surface. The standard-library adapter
 remains available for an offline zero-dependency smoke test. Build the React app with
 `npm --prefix frontend ci && npm --prefix frontend run build`; the local server serves
-`frontend/dist` when present and otherwise serves the packaged fallback UI.
+`frontend/dist` when present and otherwise serves the packaged fallback UI. In
+Codespaces, use the forwarded **8000** port as the primary route for first success.
 
 ## Run locally
 
@@ -42,7 +43,13 @@ python scripts/readiness.py
 PYTHONPATH=src python scripts/run_local.py
 ```
 
-Open <http://127.0.0.1:8000>. Use a sample inquiry, review the route and citations, edit the draft, approve it, then create a synthetic case. `scripts/readiness.py` creates an untracked local `.env` with a generated workshop approver token; the UI uses that token for the approval call. This local workshop identity is a training-only assertion protected by a generated local token, not production authentication.
+Open the forwarded port 8000 URL in Codespaces, or <http://127.0.0.1:8000>
+when running locally. Use a sample inquiry, review the route and citations, edit
+the draft, approve it, then create a synthetic case. `scripts/readiness.py`
+creates an untracked local `.env` with a generated workshop approver token; the
+UI uses that token for the approval call. This local workshop identity is a
+training-only assertion protected by a generated local token, not production
+authentication.
 
 For the FastAPI service:
 
@@ -56,6 +63,10 @@ For the React development experience, use a second terminal:
 npm --prefix frontend ci
 npm --prefix frontend run dev
 ```
+
+Codespaces forwards Vite on port 5173. The frontend uses relative `/api` and
+`/health` calls through the Vite proxy; do not replace them with a browser
+`localhost` backend URL.
 
 Optional console scripts after editable install:
 
@@ -127,8 +138,12 @@ infra/             Azure Container Apps, identity, data, search, and monitoring
 `azure.yaml` and `infra/` now define a production-shaped, no-secret Container Apps
 baseline: managed identity, ACR, Key Vault, private Blob containers, Cosmos DB, AI
 Search, Application Insights, least-privilege RBAC, bounded scaling, and optional
-default-disabled Communication Services. The current application remains local-first
-until its Azure adapters and production authentication are separately reviewed; no-dispatch and human-approval boundaries remain enforced locally. Do not treat the Bicep definitions as a verified production deployment. See `infra/README.md` for deployment, networking, and feature-flag constraints.
+default-disabled Communication Services. Azure commands, including `azd`, are
+facilitator-only and not part of the participant path. The current application
+remains local-first until its Azure adapters and production authentication are
+separately reviewed; no-dispatch and human-approval boundaries remain enforced
+locally. Do not treat the Bicep definitions as a verified production deployment.
+See `infra/README.md` for deployment, networking, and feature-flag constraints.
 
 ## Architecture source
 

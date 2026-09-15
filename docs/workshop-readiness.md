@@ -9,7 +9,8 @@ credentials, confidential agency material, or live emergency details.
 
 Participants are done when they can:
 
-1. Start the local app and see `/health` return `mode: local-synthetic`.
+1. Start the local app from forwarded port 8000 in Codespaces and see `/health`
+   return `mode: local-synthetic`.
 2. Process the **Routine license replacement** sample.
 3. Confirm the draft is pending human approval and has a public synthetic
    citation.
@@ -32,8 +33,14 @@ synthetic release gate. It writes generated evidence to `reports/readiness/`,
 which is ignored by Git.
 
 `scripts/readiness.py` also creates or refreshes the untracked `.env` with a
-generated local approval token. Start the app with `make run` or
-`PYTHONPATH=src python scripts/run_local.py` so that file is loaded.
+generated local approval token and `CC_TEAM_ID=local`. Start the app with
+`make run` or `PYTHONPATH=src python scripts/run_local.py` so that file is
+loaded.
+
+The packaged fallback UI on forwarded port 8000 is the primary Codespaces path.
+For optional Vite development, open forwarded port 5173. The Vite app uses
+relative `/api` and `/health` calls through the checked-in proxy; browser-facing
+`localhost` backend URLs break in Codespaces.
 
 ## Reset and cleanup
 
@@ -45,7 +52,10 @@ python scripts/reset_workshop.py
 
 Use `python scripts/reset_workshop.py --dry-run` to preview removals and
 `python scripts/reset_workshop.py --include-node-modules` only when the frontend
-dependency install itself needs to be rebuilt.
+dependency install itself needs to be rebuilt. On a shared host, give each team
+a `CC_TEAM_ID` and use `python scripts/reset_workshop.py --team-id TEAM_ID` so a
+coach does not remove another team's generated artifacts. Do not run global
+reset commands while shared teams are active.
 
 The local case store is in process memory. Restarting the server clears
 inquiries, approvals, cases, and review events.
@@ -57,6 +67,7 @@ inquiries, approvals, cases, and review events.
 | `CC_PROJECT_ROOT` | No | Optional override when running outside the repository root. |
 | `CC_CONFIG_PATH` | No | Optional path to `config/app.json`. |
 | `CC_HOST`, `CC_PORT` | No | Optional local server bind settings for scripts or wrappers. |
+| `CC_TEAM_ID` | No | Optional local team namespace for shared workshop hosts; generated as `local` by readiness. |
 | `CC_ENABLE_AZURE_AI_SEARCH` | No | Reserved feature indicator; local implementation does not consume Azure Search. |
 | `CC_ENABLE_COSMOS_DB` | No | Reserved feature indicator; local implementation does not consume Cosmos DB. |
 | `CC_ENABLE_COMMUNICATION_SERVICES` | No | Reserved feature indicator; sending is not enabled. |
@@ -79,6 +90,8 @@ boundary.
 | Local synthetic app runs without Azure credentials. | `constituent_connect.server`, packaged fallback UI, `config/app.json` feature flags all false, `scripts/readiness.py`. | Backed for workshop. |
 | Human approval is required before case creation. | `CaseAgent.create`, workflow tests, API tests, readiness check. | Backed. |
 | Approvals are bound to configured server identity. | Approval requires the configured approver token and uses `CONSTITUENT_CONNECT_APPROVER_ID`; reviewer names supplied by clients are ignored. Bare `X-Approval-Role` is rejected. | Backed. |
+| Retention purges in-memory raw messages and traces. | `ConstituentConnectWorkflow` calls `purge_expired()` on request paths with a throttle; workflow tests age data and confirm purge. | Backed for long-running process memory. |
+| Cited excerpts are rendered as attributed quotes and unsafe approved content is blocked. | `ResponseAgent` quotes excerpts; `QualityAgent` checks the full draft including excerpts; workflow tests mutate approved content with prohibited promises and confirm approval fails. | Backed. |
 | Emergency messages stop routine routing and do not dispatch. | Safety/routing workflow tests, red-team evals, readiness emergency check. | Backed for synthetic inputs. |
 | PII is redacted from summaries and traces. | `security.py`, workflow tests, evaluation datasets. | Backed for covered patterns. |
 | Prompt injection cannot override policy or routing. | Security patterns, unsafe retrieval filtering, tests and evals. | Backed for covered synthetic attacks. |
@@ -96,3 +109,16 @@ boundary.
 | Invalid JSON after a configuration exercise. | Run `python -m json.tool data/services.json` or the edited file and compare with neighboring entries. |
 | Evaluation fails. | Inspect `reports/evaluation.json` or `reports/readiness/evaluation.json`; critical failures block release. |
 | Azure command fails. | Stop for the workshop path. Azure validation requires an Azure identity and is outside local readiness. |
+
+## Facilitator-only Azure preflight
+
+Participants do not run `azd` and do not need Azure credentials. A facilitator
+can run this read-only preflight before any separately approved Azure validation:
+
+```bash
+python scripts/azure_facilitator_preflight.py --location eastus2
+```
+
+It checks Azure CLI login, provider registrations, a regional quota sample, and
+whether the signed-in principal appears to have subscription-level role
+assignment permissions. It does not deploy or mutate resources.

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import secrets
 import sys
 import time
@@ -32,9 +33,10 @@ AZURE_ENV_NAMES = (
     "AZURE_CLIENT_SECRET",
     "AZURE_SUBSCRIPTION_ID",
 )
+TEAM_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 
 
-def ensure_local_workshop_env() -> dict[str, str]:
+def ensure_local_workshop_env(team_id: str) -> dict[str, str]:
     values = read_env_file()
     updates: dict[str, str] = {}
     if values.get(LOCAL_WORKSHOP_APPROVAL_ENV, "").lower() != "true":
@@ -43,6 +45,8 @@ def ensure_local_workshop_env() -> dict[str, str]:
         updates[APPROVER_ID_ENV] = "local-workshop-reviewer"
     if not values.get(APPROVER_TOKEN_ENV):
         updates[APPROVER_TOKEN_ENV] = secrets.token_urlsafe(32)
+    if values.get("CC_TEAM_ID") != team_id:
+        updates["CC_TEAM_ID"] = team_id
     if updates:
         write_env_values(updates)
     return load_env()
@@ -62,7 +66,14 @@ def main() -> int:
         action="store_true",
         help="Also run the full synthetic evaluation release gate.",
     )
+    parser.add_argument(
+        "--team-id",
+        default=os.environ.get("CC_TEAM_ID", "local"),
+        help="Local team namespace for generated readiness artifacts.",
+    )
     args = parser.parse_args()
+    if not TEAM_ID_PATTERN.fullmatch(args.team_id):
+        raise SystemExit("TEAM_ID may contain only letters, numbers, dot, underscore, or hyphen.")
 
     start = time.perf_counter()
     for relative in (
@@ -117,7 +128,7 @@ def main() -> int:
         if value is not None:
             os.environ[name] = value
 
-    env_values = ensure_local_workshop_env()
+    env_values = ensure_local_workshop_env(args.team_id)
     reviewer = resolve_approver(
         workflow.catalog.settings,
         APPROVER_ROLE,
@@ -139,9 +150,13 @@ def main() -> int:
 
     eval_summary = None
     if args.full_eval:
-        eval_summary = run_evaluations(output_dir=ROOT / "reports" / "readiness")[
-            "summary"
-        ]
+        team_id = env_values.get("CC_TEAM_ID", "local")
+        output_dir = (
+            ROOT / "reports" / "readiness"
+            if team_id == "local"
+            else ROOT / "reports" / "teams" / team_id / "readiness"
+        )
+        eval_summary = run_evaluations(output_dir=output_dir)["summary"]
         if eval_summary["release_gate"] != "pass":
             raise AssertionError("Synthetic evaluation release gate failed.")
 
@@ -160,6 +175,7 @@ def main() -> int:
             "bare_role_rejected_by_default": True,
             "local_env": str(ENV_PATH),
         },
+        "team_id": env_values.get("CC_TEAM_ID", "local"),
         "emergency_boundary": emergency.route.status,
         "evaluation": eval_summary,
     }

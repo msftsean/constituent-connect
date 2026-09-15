@@ -10,7 +10,8 @@ Demonstrate a safe, human-reviewed path from a synthetic inquiry to a synthetic 
 2. Run `python scripts/readiness.py`.
 3. Run `make test`.
 4. Run `make run`.
-5. Open `http://127.0.0.1:8000` and confirm the local synthetic banner.
+5. Open forwarded port 8000 in Codespaces, or `http://127.0.0.1:8000` locally,
+   and confirm the local synthetic banner.
 
 ## Lab 2: Routine grounded response
 

@@ -54,12 +54,16 @@ class ResponseAgent:
             )
         else:
             service = self.catalog.service_by_id[route.primary_service_id or ""]
+            excerpt = self._quoted_excerpt(citations[0].excerpt)
             lead = (
                 f"The proposed service is {service.name}. "
-                f"{citations[0].excerpt} [1]"
+                f"The cited public source says: {excerpt} [1]"
             )
             if len(citations) > 1:
-                lead += f" {citations[1].excerpt} [2]"
+                lead += (
+                    " A second cited public source says: "
+                    f"{self._quoted_excerpt(citations[1].excerpt)} [2]"
+                )
             if route.secondary_service_ids:
                 names = [
                     self.catalog.service_by_id[item].name
@@ -112,3 +116,7 @@ class ResponseAgent:
             service = self.catalog.service_by_id[route.primary_service_id]
             return f"A human reviewer can help with {service.name}; see [1]."
         return "A human reviewer can help identify the correct public service."
+
+    @staticmethod
+    def _quoted_excerpt(excerpt: str) -> str:
+        return '"' + excerpt.strip().replace('"', "'") + '"'

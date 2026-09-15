@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from collections.abc import Callable
 from typing import Any
 from uuid import uuid4
@@ -217,8 +218,8 @@ app = create_app()
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the Constituent Connect FastAPI API.")
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=8001)
+    parser.add_argument("--host", default=os.getenv("CC_HOST", "0.0.0.0"))
+    parser.add_argument("--port", type=int, default=int(os.getenv("CC_PORT", "8001")))
     args = parser.parse_args()
     import uvicorn
 

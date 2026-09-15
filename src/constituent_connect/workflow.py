@@ -63,11 +63,14 @@ class ConstituentConnectWorkflow:
         self.trace_metadata_by_response: dict[str, TraceMetadata] = {}
         self.review_events: list[dict[str, Any]] = []
         self._created_at_by_response: dict[str, datetime] = {}
+        self._last_purge_monotonic = 0.0
+        self._purge_interval_seconds = 60.0
         self._lock = RLock()
 
     def assess_intake(
         self, content: str, channel: str = "web", language: str | None = None
     ) -> NormalizedInquiry:
+        self._purge_if_due()
         message = self.intake_agent.normalize(content, channel, language)
         inquiry = self.safety_agent.assess(
             message,
@@ -83,6 +86,7 @@ class ConstituentConnectWorkflow:
     def process(
         self, content: str, channel: str = "web", language: str | None = None
     ) -> WorkflowResult:
+        self._purge_if_due()
         correlation_id = new_id("corr")
         context = self.orchestrator.new_context(correlation_id)
         metadata = TraceMetadata(
@@ -178,6 +182,7 @@ class ConstituentConnectWorkflow:
         decision: str = "approve",
     ) -> GroundedResponse:
         with self._lock:
+            self._purge_if_due_locked()
             result = self._result(response_id)
             response = result.response
             if response.approval_status != "pending":
@@ -225,6 +230,7 @@ class ConstituentConnectWorkflow:
     ) -> dict[str, Any]:
         """Capture a human correction as an evaluation signal only."""
         with self._lock:
+            self._purge_if_due_locked()
             result = self._result(response_id)
             corrected = corrected_text.strip()
             if not corrected:
@@ -265,6 +271,7 @@ class ConstituentConnectWorkflow:
     ) -> RouteRecommendation:
         """Apply an explicit human reroute without mutating catalog policy."""
         with self._lock:
+            self._purge_if_due_locked()
             result = self._result(response_id)
             if primary_service_id not in self.catalog.service_by_id:
                 raise ValueError(f"Unknown service ID: {primary_service_id}")
@@ -337,6 +344,16 @@ class ConstituentConnectWorkflow:
             ]
         return removed
 
+    def _purge_if_due(self) -> None:
+        with self._lock:
+            self._purge_if_due_locked()
+
+    def _purge_if_due_locked(self) -> None:
+        current = time.monotonic()
+        if current - self._last_purge_monotonic >= self._purge_interval_seconds:
+            self._last_purge_monotonic = current
+            self.purge_expired()
+
     def _correlation_id(self, response_id: str) -> str | None:
         metadata = self.trace_metadata_by_response.get(response_id)
         return metadata.correlation_id if metadata else None
@@ -350,6 +367,7 @@ class ConstituentConnectWorkflow:
 
     def create_case(self, response_id: str) -> CaseRecord:
         with self._lock:
+            self._purge_if_due_locked()
             result = self._result(response_id)
             case = self.case_agent.create(
                 result.inquiry, result.route, result.response

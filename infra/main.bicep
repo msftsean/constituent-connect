@@ -8,8 +8,9 @@ param environmentName string
 @description('Azure region for all regional resources.')
 param location string = 'eastus2'
 
-@description('A public placeholder is used until CI publishes the application image to ACR.')
-param containerImage string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+@description('Digest-pinned application image to run in Container Apps. Set SERVICE_WEB_IMAGE explicitly before any facilitator deployment.')
+@minLength(1)
+param containerImage string
 
 @description('Number of Container Apps replicas maintained during normal traffic.')
 @minValue(1)

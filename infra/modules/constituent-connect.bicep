@@ -75,7 +75,7 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' =
     adminUserEnabled: false
     publicNetworkAccess: 'Enabled'
     networkRuleSet: {
-      defaultAction: 'Allow'
+      defaultAction: 'Deny'
     }
     policies: {
       quarantinePolicy: {

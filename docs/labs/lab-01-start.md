@@ -9,7 +9,7 @@ mode.
 
 1. Run `make test`.
 2. Run `make run`.
-3. Open <http://127.0.0.1:8000>.
+3. Open forwarded port 8000 in Codespaces, or <http://127.0.0.1:8000> locally.
 4. Check `/health` and confirm `local-synthetic`.
 5. Select a sample inquiry without adding personal information.
 

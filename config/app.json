@@ -17,7 +17,9 @@
   "privacy": {
     "retain_raw_message_in_memory_only": true,
     "include_raw_message_in_traces": false,
-    "case_summary_redacted": true
+    "case_summary_redacted": true,
+    "raw_message_retention_seconds": 3600,
+    "trace_retention_seconds": 86400
   },
   "approval": {
     "local_workshop_enabled": false,

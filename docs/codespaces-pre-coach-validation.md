@@ -4,6 +4,11 @@
 
 Use this runbook in a fresh Codespace before coaches see the Maryland Constituent Connect app. Keep all inputs synthetic. Do not enter real constituent data, credentials, tenant IDs, subscription IDs, private endpoints, or live emergency details.
 
+If you are working from a Spektra-owned clone, first complete
+[`docs/spektra-identity-handoff.md`](spektra-identity-handoff.md). Authentication
+must be performed interactively by the authorized user; do not share tokens,
+passwords, or device codes with an assistant.
+
 ## 0. Confirm you are on the right branch
 
 ```bash

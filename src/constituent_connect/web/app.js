@@ -1,5 +1,6 @@
 const byId = (id) => document.getElementById(id);
 let currentResponseId = null;
+let approvalSession = null;
 
 const showJson = (id, value) => {
   byId(id).textContent = JSON.stringify(value, null, 2);
@@ -25,6 +26,14 @@ async function loadSamples() {
     option.dataset.channel = item.channel;
     byId("sample").appendChild(option);
   });
+}
+
+async function loadApprovalSession() {
+  try {
+    approvalSession = await request("/api/workshop/approval-session");
+  } catch {
+    approvalSession = null;
+  }
 }
 
 byId("sample").addEventListener("change", (event) => {
@@ -89,6 +98,11 @@ byId("approve").addEventListener("click", async () => {
   try {
     const data = await request(`/api/responses/${currentResponseId}/approve`, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Approval-Role": approvalSession?.approval_role || "approver",
+        ...(approvalSession?.approver_token ? {"X-Approver-Token": approvalSession.approver_token} : {}),
+      },
       body: JSON.stringify({
         reviewer: byId("reviewer").value,
         edited_text: byId("draft").value,
@@ -116,6 +130,6 @@ byId("case").addEventListener("click", async () => {
   }
 });
 
-loadSamples().catch((error) => {
+Promise.all([loadSamples(), loadApprovalSession()]).catch((error) => {
   byId("request-status").textContent = error.message;
 });

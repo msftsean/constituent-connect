@@ -23,10 +23,11 @@ connection string directly in the Container App configuration.
 ## Deployment contract
 
 `azure.yaml` uses Bicep and packages the root `Dockerfile` for the `web` Container Apps
-service. Provisioning starts with the public placeholder image so infrastructure can be
-created before an application image is published. Before replacing it with an ACR image,
-ensure the deployment workflow configures the registry identity or preserves the
-template's managed-identity registry configuration.
+service. `SERVICE_WEB_IMAGE` must be set explicitly to a digest-pinned application
+image before any facilitator deployment. There is no hello-world default; an unset
+image should fail before deployment rather than publish the wrong app. Ensure the
+deployment workflow configures the registry identity or preserves the template's
+managed-identity registry configuration.
 
 Configure non-secret deployment values through Azure Developer CLI environment settings:
 
@@ -35,9 +36,21 @@ azd env set AZURE_ENV_NAME workshop-dev
 azd env set AZURE_LOCATION eastus2
 ```
 
-For a controlled production rollout, pass non-secret deployment parameter overrides for
-replica bounds or retention using your approved CI/CD deployment command. Do not add
-credentials to parameter files or `azd` environment files.
+Azure Developer CLI commands are facilitator-only. Participants should stay on
+the credential-free local synthetic path. For a controlled production rollout,
+first review the application adapter and
+production authentication plan, then pass non-secret deployment parameter overrides
+for replica bounds or retention using your approved CI/CD deployment command. Do not
+add credentials to parameter files or `azd` environment files.
+
+Before validation, a facilitator may run:
+
+```powershell
+python scripts\azure_facilitator_preflight.py --location eastus2
+```
+
+The script is read-only and checks provider registration, a quota sample, and
+likely role-assignment permission.
 
 ## Feature flags and safety boundaries
 
@@ -50,19 +63,21 @@ configured with:
 - `CC_HUMAN_APPROVAL_REQUIRED=true`
 - Azure AI Search and Cosmos feature indicators for a future identity-aware adapter
 
-The current local-first implementation does not consume the Azure data-plane endpoints.
-Do not enable data persistence, ACS actions, or automated sending until the application
-adapter has been reviewed for the same synthetic-only, no-dispatch, human-approval
-boundaries.
+The current local-first implementation does not consume the Azure data-plane endpoints
+and has not been production-validated against these resources. Do not enable data
+persistence, ACS actions, or automated sending until the application adapter and
+production authentication/authorization boundary have been reviewed for the same
+synthetic-only, no-dispatch, human-approval constraints.
 
 ## Network posture
 
 The storage account denies anonymous Blob access and shared keys; Key Vault denies
-public traffic by default except Azure platform services. ACR, Cosmos DB, AI Search, and
-the Container App remain publicly reachable at their service endpoints so the baseline
-can deploy without a managed VNet and private DNS zone dependency. Production rollout
-should add a managed environment VNet, private endpoints, private DNS zones, approved
-egress, and then disable public network access for each supported service.
+public traffic by default except Azure platform services. ACR denies public network
+traffic by default. Cosmos DB, AI Search, and the Container App remain publicly
+reachable at their service endpoints so the baseline can validate without a managed
+VNet and private DNS zone dependency. Production rollout should add a managed
+environment VNet, private endpoints, private DNS zones, approved egress, and then
+disable public network access for each supported service.
 
 ## Validation
 

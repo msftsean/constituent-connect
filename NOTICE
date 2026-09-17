@@ -1,0 +1,13 @@
+Maryland Constituent Connect
+Copyright (c) 2026 Sean Gayle.
+
+This accelerator uses synthetic Maryland-style agency, service, inquiry, and
+public-knowledge data for workshop purposes. It is not affiliated with, endorsed
+by, or connected to any production State of Maryland system.
+
+The implementation follows workshop-delivery patterns inspired by All Clear,
+but it does not copy All Clear's incident-triage domain. Constituent Connect is
+limited to non-emergency constituent communications and contact-center support.
+
+Architecture diagrams reference Microsoft Fluent 2 system-icon assets by pinned
+package/version metadata documented in design/fluent2-icon-manifest.md.

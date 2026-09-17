@@ -8,11 +8,18 @@ type Workflow = {
   route: Record<string, any>;
   response: Record<string, any>;
 };
+type ApprovalSession = {
+  approval_role: string;
+  approver_token: string;
+  approver_id: string;
+};
+type ApprovalSessionResponse = ApprovalSession | { data?: ApprovalSession };
 
 const api = async <T,>(path: string, init?: RequestInit): Promise<T> => {
+  const { headers, ...rest } = init ?? {};
   const response = await fetch(path, {
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
-    ...init,
+    ...rest,
+    headers: { "Content-Type": "application/json", ...(headers ?? {}) },
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error ?? "Request failed");
@@ -34,11 +41,21 @@ export function App() {
   const [caseRecord, setCaseRecord] = useState<unknown>(null);
   const [status, setStatus] = useState("Ready for a synthetic inquiry.");
   const [busy, setBusy] = useState(false);
+  const [approvalSession, setApprovalSession] = useState<ApprovalSession | null>(null);
 
   useEffect(() => {
     api<{ items: Sample[] }>("/api/synthetic/inquiries")
       .then(({ items }) => setSamples(items))
       .catch((error: Error) => setStatus(error.message));
+    api<ApprovalSessionResponse>("/api/workshop/approval-session")
+      .then((session) => {
+        if ("approver_token" in session) {
+          setApprovalSession(session);
+        } else {
+          setApprovalSession(session.data ?? null);
+        }
+      })
+      .catch(() => setApprovalSession(null));
   }, []);
 
   const selectedSample = useMemo(
@@ -72,6 +89,10 @@ export function App() {
         `/api/responses/${workflow.response.response_id}/approve`,
         {
           method: "POST",
+          headers: {
+            "X-Approval-Role": approvalSession?.approval_role ?? "approver",
+            ...(approvalSession?.approver_token ? { "X-Approver-Token": approvalSession.approver_token } : {}),
+          },
           body: JSON.stringify({ reviewer, edited_text: draft, decision: "approve" }),
         },
       );

@@ -4,7 +4,7 @@
 
 - Non-emergency scope, emergency exit, grounded response, privacy minimization, human approval, synthetic data, and evaluation gates are represented in the specification and plan.
 - Bounded agent authority is explicit.
-- Emergency, privacy, routing, disclosure, and approval decisions are deterministic.
+- Emergency, privacy, routing, disclosure, and approval decisions are deterministic, with expanded current/historical/negated/hypothetical emergency tests.
 - Draw.io and Fluent 2 design requirements are represented in the constitution, plan, and tasks.
 
 ## All Clear pattern alignment
@@ -26,8 +26,9 @@
 - The API supports intake, response, approval, case, and evaluation flows.
 - The task list includes zero-generative-call gate tests and authority-boundary tests.
 - The emergency boundary remains distinct from All Clear's dispatch-oriented incident domain.
-- The existing local implementation is a foundation; Azure infrastructure remains intentionally incomplete.
+- The local implementation is the behavioral reference; Azure infrastructure remains facilitator-only until validated in an authorized development environment.
 - AI assistance disclosure, correction capture, measurable thresholds, and deterministic engine authority are now explicit requirements.
+- Emergency approval rejection, idempotent case creation, expanded PII categories, and measured emergency false-positive performance are now encoded in tests/evals.
 
 ## Required implementation follow-through
 
@@ -47,3 +48,12 @@ The original analysis was stale. The following contradictions were resolved befo
 - Added CC-050 through CC-056 for disclosure, correction capture, drift/authority tests, measurable gates, OpenAPI reconciliation, and telemetry/retention.
 
 Implementation may proceed against the reconciled tasks.
+
+## Latest hardening reconciliation
+
+- `/speckit.constitution`: confirmed `CONTEXT.md` remains canonical, deterministic gates own emergency/privacy/routing/approval, and non-emergency scope remains separate from All Clear.
+- `/speckit.specify`: updated FR-003, FR-004, FR-009, FR-018, and FR-019 for concrete implemented/deferred behavior.
+- `/speckit.clarify`: no constitutional contradiction remains; production Entra and system-of-record policy decisions remain deferred but do not block local workshop readiness.
+- `/speckit.plan`: aligned plan with current FastAPI/React/local-synthetic architecture and idempotent case behavior.
+- `/speckit.analyze`: release evidence now includes 33 unit tests and 42 eval cases.
+- `/speckit.tasks`: updated completion state for hardening and porting-contract tasks.

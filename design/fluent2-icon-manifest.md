@@ -1,6 +1,8 @@
 # Fluent 2 Icon Manifest
 
-Source: `https://github.com/microsoft/fluentui-system-icons` (MIT)
+**Revision:** 2026-09-17 · **Status:** 🟩🟩🟩⬜⬜ source pinned
+
+Pinned source: `microsoft/fluentui-system-icons` package metadata, MIT license, reviewed 2026-09-17. Do not link diagrams to mutable `main` URLs; vendor/pin any future icon assets by package version, release tag, or commit SHA before embedding.
 
 | Diagram concept | Fluent 2 system icon |
 | --- | --- |
@@ -12,4 +14,6 @@ Source: `https://github.com/microsoft/fluentui-system-icons` (MIT)
 | Human contact-center agent | `person_support_24_regular` |
 | Application service | `cloud_24_regular` |
 | Case and audit data | `database_24_regular` |
-
+| Azure identity controls | `key_24_regular` |
+| Disabled outbound connectors | `plug_disconnected_24_regular` |
+| Observability | `pulse_24_regular` |

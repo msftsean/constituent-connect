@@ -63,11 +63,14 @@ class ConstituentConnectWorkflow:
         self.trace_metadata_by_response: dict[str, TraceMetadata] = {}
         self.review_events: list[dict[str, Any]] = []
         self._created_at_by_response: dict[str, datetime] = {}
+        self._last_purge_monotonic = 0.0
+        self._purge_interval_seconds = 60.0
         self._lock = RLock()
 
     def assess_intake(
         self, content: str, channel: str = "web", language: str | None = None
     ) -> NormalizedInquiry:
+        self._purge_if_due()
         message = self.intake_agent.normalize(content, channel, language)
         inquiry = self.safety_agent.assess(
             message,
@@ -83,6 +86,7 @@ class ConstituentConnectWorkflow:
     def process(
         self, content: str, channel: str = "web", language: str | None = None
     ) -> WorkflowResult:
+        self._purge_if_due()
         correlation_id = new_id("corr")
         context = self.orchestrator.new_context(correlation_id)
         metadata = TraceMetadata(
@@ -178,19 +182,28 @@ class ConstituentConnectWorkflow:
         decision: str = "approve",
     ) -> GroundedResponse:
         with self._lock:
+            self._purge_if_due_locked()
             result = self._result(response_id)
             response = result.response
             if response.approval_status != "pending":
                 raise ValueError("This response already has a human decision.")
-            if decision not in {"approve", "reject"}:
-                raise ValueError("Decision must be 'approve' or 'reject'.")
+            if decision not in {"approve", "edit", "reject", "escalate"}:
+                raise ValueError("Decision must be approve, edit, reject, or escalate.")
+            if result.inquiry.emergency_signal and decision in {"approve", "edit"}:
+                raise ValueError("Emergency responses cannot be approved as routine responses.")
             candidate = (edited_text or response.draft).strip()
-            if decision == "approve" and response.ai_disclosure not in candidate:
+            if decision in {"approve", "edit"} and response.ai_disclosure not in candidate:
                 candidate = f"{candidate} {response.ai_disclosure}".strip()
-            if decision == "approve" and self.quality_agent.PROHIBITED.search(candidate):
+            if decision in {"approve", "edit"} and self.quality_agent.PROHIBITED.search(candidate):
                 raise ValueError("Edited response contains a prohibited commitment.")
-            response.approval_status = "approved" if decision == "approve" else "rejected"
-            response.approved_text = candidate if decision == "approve" else None
+            status_by_decision = {
+                "approve": "approved",
+                "edit": "approved",
+                "reject": "rejected",
+                "escalate": "escalated",
+            }
+            response.approval_status = status_by_decision[decision]
+            response.approved_text = candidate if decision in {"approve", "edit"} else None
             response.approved_by = reviewer.strip() or "human-reviewer"
             response.approved_at = now_iso()
             result.inquiry.transformation_history.append(
@@ -206,7 +219,7 @@ class ConstituentConnectWorkflow:
             self.review_events.append(
                 {
                     "event_id": new_id("review"),
-                    "type": "approval" if decision == "approve" else "rejection",
+                    "type": decision,
                     "response_id": response_id,
                     "reviewer": response.approved_by,
                     "edited": bool(edited_text and edited_text != response.draft),
@@ -225,6 +238,7 @@ class ConstituentConnectWorkflow:
     ) -> dict[str, Any]:
         """Capture a human correction as an evaluation signal only."""
         with self._lock:
+            self._purge_if_due_locked()
             result = self._result(response_id)
             corrected = corrected_text.strip()
             if not corrected:
@@ -265,6 +279,7 @@ class ConstituentConnectWorkflow:
     ) -> RouteRecommendation:
         """Apply an explicit human reroute without mutating catalog policy."""
         with self._lock:
+            self._purge_if_due_locked()
             result = self._result(response_id)
             if primary_service_id not in self.catalog.service_by_id:
                 raise ValueError(f"Unknown service ID: {primary_service_id}")
@@ -337,6 +352,19 @@ class ConstituentConnectWorkflow:
             ]
         return removed
 
+    def _purge_if_due(self) -> None:
+        with self._lock:
+            self._purge_if_due_locked()
+
+    def _purge_if_due_locked(self) -> None:
+        current = time.monotonic()
+        if (
+            self._last_purge_monotonic == 0.0
+            or current - self._last_purge_monotonic >= self._purge_interval_seconds
+        ):
+            self._last_purge_monotonic = current
+            self.purge_expired()
+
     def _correlation_id(self, response_id: str) -> str | None:
         metadata = self.trace_metadata_by_response.get(response_id)
         return metadata.correlation_id if metadata else None
@@ -350,7 +378,10 @@ class ConstituentConnectWorkflow:
 
     def create_case(self, response_id: str) -> CaseRecord:
         with self._lock:
+            self._purge_if_due_locked()
             result = self._result(response_id)
+            if result.case is not None:
+                return result.case
             case = self.case_agent.create(
                 result.inquiry, result.route, result.response
             )

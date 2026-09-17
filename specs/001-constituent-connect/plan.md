@@ -9,7 +9,7 @@ The delivery shape follows All Clear: a visible hero scenario, canonical domain 
 ## Agent topology
 
 1. Channel Intake Agent: normalizes web, chat, email, or transcription input.
-2. Safety and Privacy Agent: detects emergencies, injection attempts, sensitive data, and redaction needs.
+2. Safety and Privacy Agent: deterministically detects current emergencies, distinguishes historical/negated/hypothetical/false-positive references, detects injection attempts, and redacts sensitive data.
 3. Intent Agent: classifies service, agency, urgency, language, and confidence.
 4. Public Knowledge Agent: retrieves official public passages.
 5. Response Agent: drafts a cited plain-language response.
@@ -25,7 +25,7 @@ The delivery shape follows All Clear: a visible hero scenario, canonical domain 
 - Routing Engine: deterministically apply configured service ownership, confidence thresholds, disclosure scope, and escalation rules.
 - Public Knowledge Agent: retrieve public evidence only.
 - Response Agent: draft from accepted evidence; cannot promise eligibility, payment, status, or outcome.
-- Case tool: unavailable until the human-approval gate passes.
+- Case tool: unavailable until the human-approval gate passes; creation is idempotent per response.
 - Quality Agent: block unsupported or prohibited drafts; cannot approve them.
 
 ## Data and retrieval
@@ -73,4 +73,5 @@ The delivery shape follows All Clear: a visible hero scenario, canonical domain 
 - Public content can be multilingual, but the authoritative source remains visible.
 - Agency ownership and routing rules are versioned configuration.
 - AI assistance is disclosed to constituents and retained in the approved response and audit history.
+- Emergency responses may be rejected or escalated, but never approved as routine responses.
 - Human corrections are captured as evaluation signals and never mutate policy automatically.

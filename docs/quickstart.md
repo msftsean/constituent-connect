@@ -17,16 +17,25 @@ emergency details.
 From the repository root, use Python 3.11 or newer:
 
 ```bash
+python -m pip install -e .
+python scripts/readiness.py
 PYTHONPATH=src python -m unittest discover -s tests -v
-PYTHONPATH=src python -m constituent_connect.server
+PYTHONPATH=src python scripts/run_local.py
 ```
 
 On systems with GNU Make, `make test` and `make run` are equivalent. To use the
 React development experience, run `npm --prefix frontend ci` and
-`npm --prefix frontend run dev` in a second terminal.
+`npm --prefix frontend run dev` in a second terminal, then open forwarded port
+5173. The Vite app uses relative API calls through the checked-in proxy; do not
+configure browser-facing `localhost` API URLs in Codespaces.
 
-Open <http://127.0.0.1:8000>. Confirm that the page identifies the local
-synthetic mode before entering a sample inquiry.
+Open the forwarded port 8000 URL in Codespaces, or <http://127.0.0.1:8000>
+when running locally. Confirm that the page identifies the local synthetic mode
+before entering a sample inquiry.
+The approve button uses the generated local approver token from the untracked
+`.env` created by `scripts/readiness.py`; no Azure credentials are required.
+That local workshop identity is a training-only assertion, not production
+authentication.
 
 ## 3. Follow the participant path
 
@@ -55,4 +64,5 @@ Run the commands above followed by
 `PYTHONPATH=src python -m constituent_connect.eval_runner`, inspect
 `reports/evaluation.html`, and use the
 [evaluation scorecard](evaluation-scorecard.md) to record observations. Stop
-the local server when the workshop ends.
+the local server when the workshop ends. For reset and recovery steps, see
+[workshop readiness](workshop-readiness.md).

@@ -8,16 +8,51 @@ from .models import PiiFinding
 
 
 PII_PATTERNS = {
-    "social_security_number": re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
+    "social_security_number": re.compile(
+        r"\b(?!000|666|9\d{2})\d{3}[-\s]?(?!00)\d{2}[-\s]?(?!0000)\d{4}\b"
+    ),
     "email_address": re.compile(
         r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE
     ),
     "phone_number": re.compile(
-        r"(?<!\d)(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}(?!\d)"
+        r"(?<!\d)(?:\+?1[-.\s]?)?\(?[2-9]\d{2}\)?[-.\s]?[2-9]\d{2}[-.\s]?\d{4}(?!\d)"
+    ),
+    "street_address": re.compile(
+        r"\b\d{1,6}\s+(?:[A-Z0-9.'-]+\s+){1,6}"
+        r"(?:street|st|avenue|ave|road|rd|boulevard|blvd|drive|dr|lane|ln|"
+        r"court|ct|place|pl|way|circle|cir|terrace|ter)\b(?:\s*(?:apt|unit|suite|#)\s*\w+)?",
+        re.IGNORECASE,
+    ),
+    "date_of_birth": re.compile(
+        r"\b(?:dob|date of birth|born)\s*(?:is|:|=)?\s*"
+        r"(?:\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|[A-Z][a-z]+\s+\d{1,2},\s+\d{4})\b",
+        re.IGNORECASE,
+    ),
+    "driver_or_professional_license": re.compile(
+        r"\b(?:driver'?s?|professional|occupational)?\s*(?:license|licence|dl)\s*"
+        r"(?:number|#|id)?\s*(?:is|:|=)?\s*[A-Z]{1,4}[-\s]?\d{5,12}\b",
+        re.IGNORECASE,
+    ),
+    "benefit_tax_case_account_identifier": re.compile(
+        r"\b(?:benefit|tax|case|account|claim|client)\s*(?:number|#|id)?\s*"
+        r"(?:is|:|=)?\s*[A-Z]{0,4}[-\s]?\d{6,16}\b",
+        re.IGNORECASE,
     ),
     "payment_card": re.compile(r"\b(?:\d[ -]*?){13,16}\b"),
+    "bank_information": re.compile(
+        r"\b(?:routing|bank account|account)\s*(?:number|#)?\s*(?:is|:|=)?\s*\d{6,17}\b",
+        re.IGNORECASE,
+    ),
     "password": re.compile(
         r"\b(?:password|passcode|pin)\s*(?:is|:|=)\s*\S+", re.IGNORECASE
+    ),
+    "token_or_secret": re.compile(
+        r"\b(?:token|api key|secret|credential|access key)\s*(?:is|:|=)\s*[A-Za-z0-9._~+/=-]{8,}\b",
+        re.IGNORECASE,
+    ),
+    "one_time_code": re.compile(
+        r"\b(?:one[-\s]?time code|otp|verification code|mfa code)\s*(?:is|:|=)?\s*\d{4,10}\b",
+        re.IGNORECASE,
     ),
 }
 

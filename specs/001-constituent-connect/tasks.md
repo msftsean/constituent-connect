@@ -42,7 +42,7 @@
 ## Azure and workshop
 
 - [x] CC-040 Add Bicep and Azure Developer CLI configuration.
-- [x] CC-041 Deploy Container Apps, AI Search, Blob, Cosmos DB, Key Vault, and monitoring.
+- [x] CC-041 Define production-shaped Container Apps, AI Search, Blob, Cosmos DB, Key Vault, and monitoring infrastructure; deployment remains separately reviewed.
 - [x] CC-042 Add optional Communication Services extension behind a feature flag.
 - [x] CC-043 Create participant quickstart and seven progressive labs (Lab 00-06).
 - [x] CC-044 Create coach runbook, demo prompts, judging guide, and recovery steps.
@@ -61,3 +61,14 @@
 - [x] CC-054 Add measurable release assertions for 90% routing accuracy, 100% critical emergency recall, 95% citation precision, and quickstart timing.
 - [x] CC-055 Reconcile the OpenAPI contract with typed request/response schemas and classify/route operations.
 - [x] CC-056 Add structured correlation, latency, model/cost telemetry, configurable retention, and privacy-safe persistence.
+- [x] CC-057 Expand deterministic emergency boundary tests for heart attack, stroke, fire/smoke, breathing crisis, drowning, overdose, violence, domestic violence, self-harm, trapped persons, immediate danger, historical/negated/resolved/hypothetical/mixed cases, and workshop false positives.
+- [x] CC-058 Expand PII redaction coverage for formatted/unformatted SSNs, phones, email, street address, DOB, licenses, benefit/tax/case/account IDs, payment/bank details, passwords, tokens, one-time codes, and secrets.
+- [x] CC-059 Reject emergency-response approval as routine, support reviewer escalation state, and test API enforcement.
+- [x] CC-060 Make case creation idempotent per approved response.
+- [x] CC-061 Add emergency false-positive rate to release-gated evaluation assertions.
+- [x] CC-062 Add repository license, notice, security, contribution, code-owner, issue/PR template, transfer checklist, and generated-artifact policy artifacts.
+- [ ] CC-063 Replace local workshop token approval with production Microsoft Entra authentication and server-side role authorization in the deployed environment.
+- [ ] CC-064 Deploy to an authorized Spektra development environment and attach validation/what-if/deployment evidence.
+- [ ] CC-065 Run a true fresh Codespace smoke test and attach screenshots/output.
+- [ ] CC-066 Complete full Draw.io diagram set and exported previews beyond the current architecture source.
+- [ ] CC-067 Run external link checking against all public documentation URLs.

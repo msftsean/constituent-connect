@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from collections.abc import Callable
 from typing import Any
 from uuid import uuid4
@@ -9,6 +10,7 @@ from fastapi import FastAPI, Header, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from .approval import APPROVER_TOKEN_HEADER, workshop_approval_session, resolve_approver
 from .api_models import (
     ApiResponse,
     ApprovalRequest,
@@ -50,6 +52,10 @@ def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
     async def value_error(request: Request, exc: ValueError):
         return _error(request, str(exc), 400)
 
+    @app.exception_handler(PermissionError)
+    async def permission_error(request: Request, exc: PermissionError):
+        return _error(request, str(exc), 403)
+
     @app.exception_handler(KeyError)
     async def key_error(request: Request, exc: KeyError):
         return _error(request, str(exc).strip("'"), 404)
@@ -65,7 +71,7 @@ def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
         inquiry = service.assess_intake(
             payload.message, payload.channel, payload.language
         )
-        return _with_correlation({"data": to_dict(inquiry)}, request)
+        return _with_correlation({"data": _safe_inquiry(inquiry)}, request)
 
     @app.post("/api/classify", response_model=ApiResponse)
     async def classify(payload: InquiryRequest, request: Request) -> dict[str, Any]:
@@ -88,7 +94,7 @@ def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
     @app.post("/api/respond", response_model=ApiResponse)
     async def respond(payload: InquiryRequest, request: Request) -> dict[str, Any]:
         result = service.process(payload.message, payload.channel, payload.language)
-        return _with_correlation({"data": to_dict(result)}, request)
+        return _with_correlation({"data": _safe_result(result)}, request)
 
     @app.post("/api/route", response_model=ApiResponse)
     async def route(payload: InquiryRequest, request: Request) -> dict[str, Any]:
@@ -106,13 +112,31 @@ def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
 
     @app.post("/api/approval", response_model=ApiResponse)
     async def approval(
-        payload: ApprovalRequest, request: Request
+        payload: ApprovalRequest,
+        request: Request,
+        approval_role: str | None = Header(default=None, alias="X-Approval-Role"),
+        approver_token: str | None = Header(default=None, alias=APPROVER_TOKEN_HEADER),
     ) -> dict[str, Any]:
         if not payload.response_id:
             raise ValueError("response_id is required.")
+        reviewer = resolve_approver(
+            service.catalog.settings,
+            approval_role,
+            approver_token,
+        )
+        if payload.decision == "reroute":
+            if not payload.target_service_id:
+                raise ValueError("target_service_id is required for reroute.")
+            route = service.reroute_response(
+                payload.response_id,
+                reviewer,
+                payload.target_service_id,
+                payload.reason,
+            )
+            return _with_correlation({"data": to_dict(route)}, request)
         response = service.approve_response(
             payload.response_id,
-            payload.reviewer,
+            reviewer,
             payload.edited_text,
             payload.decision,
         )
@@ -120,11 +144,20 @@ def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
 
     @app.post("/api/responses/{response_id}/approve", response_model=ApiResponse)
     async def approve_legacy(
-        response_id: str, payload: ApprovalRequest, request: Request
+        response_id: str,
+        payload: ApprovalRequest,
+        request: Request,
+        approval_role: str | None = Header(default=None, alias="X-Approval-Role"),
+        approver_token: str | None = Header(default=None, alias=APPROVER_TOKEN_HEADER),
     ) -> dict[str, Any]:
         if payload.response_id and payload.response_id != response_id:
             raise ValueError("Path response_id must match the request response_id.")
-        return await approval(payload.model_copy(update={"response_id": response_id}), request)
+        return await approval(
+            payload.model_copy(update={"response_id": response_id}),
+            request,
+            approval_role,
+            approver_token,
+        )
 
     @app.post("/api/cases", response_model=ApiResponse, status_code=201)
     async def create_case(
@@ -141,6 +174,13 @@ def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
             raise KeyError(f"Unknown case ID: {case_id}") from exc
         return _with_correlation({"data": to_dict(case)}, request)
 
+    @app.get("/api/workshop/approval-session", response_model=ApiResponse)
+    async def approval_session(request: Request) -> dict[str, Any]:
+        return _with_correlation(
+            {"data": workshop_approval_session(service.catalog.settings)},
+            request,
+        )
+
     @app.post("/api/evals/run", response_model=ApiResponse, status_code=202)
     async def evaluations(request: Request) -> dict[str, Any]:
         report = run_evaluations()
@@ -151,6 +191,22 @@ def create_app(workflow: ConstituentConnectWorkflow | None = None) -> FastAPI:
 
 def _with_correlation(payload: dict[str, Any], request: Request) -> dict[str, Any]:
     return {**payload, "correlation_id": request.state.correlation_id}
+
+
+def _safe_inquiry(inquiry: Any) -> dict[str, Any]:
+    data = to_dict(inquiry)
+    data.pop("message_id", None)
+    data.pop("raw_content", None)
+    data.pop("attachments", None)
+    return data
+
+
+def _safe_result(result: Any) -> dict[str, Any]:
+    data = to_dict(result)
+    data["message"].pop("raw_content", None)
+    data["message"].pop("attachments", None)
+    data["message"].pop("consent_flags", None)
+    return data
 
 
 def _error(
@@ -172,8 +228,8 @@ app = create_app()
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the Constituent Connect FastAPI API.")
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=8001)
+    parser.add_argument("--host", default=os.getenv("CC_HOST", "0.0.0.0"))
+    parser.add_argument("--port", type=int, default=int(os.getenv("CC_PORT", "8001")))
     args = parser.parse_args()
     import uvicorn
 

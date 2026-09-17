@@ -1,0 +1,7 @@
+[
+  {
+    "id": "expanded-pii",
+    "message": "My SSN is 123456789, phone 4105550199, address 100 State Street Apt 2, DOB is 01/02/1980, license number D1234567, case number C123456789, routing number 021000021, password is Swordfish!, token is abcdefgh123456, verification code is 123456. I need a replacement professional license.",
+    "forbiddenNormalOutput": ["123456789", "4105550199", "100 State Street Apt 2", "DOB is 01/02/1980", "D1234567", "C123456789", "021000021", "Swordfish", "abcdefgh123456", "123456"]
+  }
+]

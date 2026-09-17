@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -10,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import PROJECT_ROOT
+from .approval import workshop_approval_session, resolve_approver
 from .eval_runner import run_evaluations
 from .models import to_dict
 from .workflow import ConstituentConnectWorkflow
@@ -26,6 +28,12 @@ class ConstituentConnectHandler(BaseHTTPRequestHandler):
             return
         if self.path == "/api/synthetic/inquiries":
             self._json({"items": self.workflow.catalog.sample_inquiries})
+            return
+        if self.path == "/api/workshop/approval-session":
+            try:
+                self._json(workshop_approval_session(self.workflow.catalog.settings))
+            except PermissionError as exc:
+                self._json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
             return
         asset = "index.html" if self.path in {"/", "/index.html"} else self.path.lstrip("/")
         if asset.startswith(("/", "\\")) or ".." in Path(asset).parts:
@@ -75,15 +83,20 @@ class ConstituentConnectHandler(BaseHTTPRequestHandler):
                     payload.get("channel", "web"),
                     payload.get("language"),
                 )
-                self._json(to_dict(result))
+                self._json(self._safe_result(result))
                 return
             approval_match = re.fullmatch(
                 r"/api/responses/([^/]+)/approve", self.path
             )
             if approval_match:
+                reviewer = resolve_approver(
+                    self.workflow.catalog.settings,
+                    self.headers.get("X-Approval-Role"),
+                    self.headers.get("X-Approver-Token"),
+                )
                 response = self.workflow.approve_response(
                     approval_match.group(1),
-                    payload.get("reviewer", "local-human-reviewer"),
+                    reviewer,
                     payload.get("edited_text"),
                     payload.get("decision", "approve"),
                 )
@@ -98,6 +111,8 @@ class ConstituentConnectHandler(BaseHTTPRequestHandler):
                 self._json(report, HTTPStatus.ACCEPTED)
                 return
             self._json({"error": "Not found"}, HTTPStatus.NOT_FOUND)
+        except PermissionError as exc:
+            self._json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
         except (ValueError, KeyError, json.JSONDecodeError) as exc:
             self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
 
@@ -118,14 +133,22 @@ class ConstituentConnectHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(content)
 
+    @staticmethod
+    def _safe_result(result: Any) -> dict[str, Any]:
+        data = to_dict(result)
+        data["message"].pop("raw_content", None)
+        data["message"].pop("attachments", None)
+        data["message"].pop("consent_flags", None)
+        return data
+
     def log_message(self, format: str, *args: object) -> None:
         print(f"[http] {self.address_string()} {format % args}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the local Constituent Connect UI.")
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--host", default=os.getenv("CC_HOST", "0.0.0.0"))
+    parser.add_argument("--port", type=int, default=int(os.getenv("CC_PORT", "8000")))
     args = parser.parse_args()
     server = ThreadingHTTPServer((args.host, args.port), ConstituentConnectHandler)
     print(f"Constituent Connect running at http://{args.host}:{args.port}")

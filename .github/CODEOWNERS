@@ -1,0 +1,9 @@
+# Default repository ownership for Maryland Constituent Connect.
+* @msftsean
+
+# Security, deployment, and workshop contract changes need owner review.
+/infra/ @msftsean
+/.github/workflows/ @msftsean
+/src/constituent_connect/security.py @msftsean
+/src/constituent_connect/agents/safety_privacy.py @msftsean
+/porting/ @msftsean

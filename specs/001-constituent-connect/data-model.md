@@ -20,6 +20,8 @@
 - `urgency`
 - `emergency_signal`
 - `pii_findings`
+- `trace_id`
+- `transformation_history`
 
 ## AgencyService
 
@@ -42,6 +44,7 @@
 - `reason`
 - `clarifying_question`
 - `human_review_required`
+- `status`
 
 ## GroundedResponse
 
@@ -52,6 +55,10 @@
 - `citations`
 - `prohibited_commitment_check`
 - `approval_status`
+- `ai_disclosure`
+- `approved_text`
+- `approved_by`
+- `approved_at`
 
 ## CaseRecord
 
@@ -73,3 +80,8 @@
 - `severity`
 - `trace_id`
 
+## Implemented safety categories
+
+- Emergency states: `routine`, `emergency_exit`, `clarification_required`, `route_proposed`.
+- Human decision states: `pending`, `approved`, `rejected`, `escalated`.
+- PII categories: social security number, email address, phone number, street address, date of birth, driver/professional license, benefit/tax/case/account identifier, payment card, bank information, password, token/secret, and one-time code.

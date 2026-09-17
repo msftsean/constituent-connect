@@ -21,13 +21,14 @@ The repository follows the proven All Clear delivery pattern while preserving a 
 - PII redaction, prompt-injection filtering, citations, abstention, cross-agency handoffs, and approval-gated case creation.
 - JSONL evaluation runner with JSON and HTML reports.
 - Standard-library `unittest` coverage, frontend build checks, devcontainer, CI, and
-  production-shaped Azure infrastructure.
+  production-shaped Azure infrastructure definitions.
 - Editable Draw.io architecture source using Fluent 2 system icons.
 
 The FastAPI adapter is the production-shaped API surface. The standard-library adapter
 remains available for an offline zero-dependency smoke test. Build the React app with
 `npm --prefix frontend ci && npm --prefix frontend run build`; the local server serves
-`frontend/dist` when present and otherwise serves the packaged fallback UI.
+`frontend/dist` when present and otherwise serves the packaged fallback UI. In
+Codespaces, use the forwarded **8000** port as the primary route for first success.
 
 ## Run locally
 
@@ -37,10 +38,19 @@ build the React frontend.
 
 ```bash
 cd constituent-connect
-PYTHONPATH=src python -m constituent_connect.server
+python -m pip install -e .
+python scripts/readiness.py
+PYTHONPATH=src python scripts/run_local.py
 ```
 
-Open <http://127.0.0.1:8000>. Use a sample inquiry, review the route and citations, edit the draft, approve it, then create a synthetic case.
+Open the forwarded port 8000 URL in Codespaces, or <http://127.0.0.1:8000>
+when running locally. Use a sample inquiry, review the route and citations, edit
+the draft, approve it, then create a synthetic case. `scripts/readiness.py`
+creates or updates an untracked local `.env` with a generated workshop approver token; the
+UI uses that token for the approval call. This local workshop identity is a
+training-only assertion protected by a generated local token, not production
+authentication. Emergency responses cannot be approved as routine responses;
+they may only be rejected or escalated.
 
 For the FastAPI service:
 
@@ -55,7 +65,11 @@ npm --prefix frontend ci
 npm --prefix frontend run dev
 ```
 
-Optional editable install:
+Codespaces forwards Vite on port 5173. The frontend uses relative `/api` and
+`/health` calls through the Vite proxy; do not replace them with a browser
+`localhost` backend URL.
+
+Optional console scripts after editable install:
 
 ```bash
 python -m pip install -e .
@@ -71,7 +85,7 @@ PYTHONPATH=src python -m constituent_connect.eval_runner
 
 On systems with GNU Make, `make test` and `make eval` are equivalent.
 
-The evaluation command consumes `evals/datasets/core.jsonl` and `evals/datasets/red-team.jsonl`. It writes `reports/evaluation.json` and `reports/evaluation.html` and exits nonzero when the release gate fails.
+The evaluation command consumes `evals/datasets/core.jsonl` and `evals/datasets/red-team.jsonl`. It writes JSON and HTML reports and exits nonzero when the release gate fails. Current release assertions cover 100% critical emergency recall, emergency false-positive rate, routing accuracy, citation precision, and zero critical PII failures.
 
 ## API
 
@@ -81,7 +95,7 @@ The evaluation command consumes `evals/datasets/core.jsonl` and `evals/datasets/
 | GET | `/api/synthetic/inquiries` | Demo inquiry library |
 | POST | `/api/intake` | Normalize and safety-assess |
 | POST | `/api/respond` | Run the draft and route workflow |
-| POST | `/api/responses/{id}/approve` | Record a human decision or edit |
+| POST | `/api/responses/{id}/approve` | Record a human approval, edit, rejection, reroute, or escalation |
 | POST | `/api/cases` | Create a synthetic case after approval |
 | POST | `/api/evals/run` | Run the approved evaluation datasets |
 
@@ -125,10 +139,12 @@ infra/             Azure Container Apps, identity, data, search, and monitoring
 `azure.yaml` and `infra/` now define a production-shaped, no-secret Container Apps
 baseline: managed identity, ACR, Key Vault, private Blob containers, Cosmos DB, AI
 Search, Application Insights, least-privilege RBAC, bounded scaling, and optional
-default-disabled Communication Services. The current application remains local-first
-until its Azure adapters are separately reviewed; no-dispatch and human-approval
-boundaries remain enforced. See `infra/README.md` for deployment, networking, and
-feature-flag constraints.
+default-disabled Communication Services. Azure commands, including `azd`, are
+facilitator-only and not part of the participant path. The current application
+remains local-first until its Azure adapters and production authentication are
+separately reviewed; no-dispatch and human-approval boundaries remain enforced
+locally. Do not treat the Bicep definitions as a verified production deployment.
+See `infra/README.md` for deployment, networking, and feature-flag constraints.
 
 ## Architecture source
 
@@ -137,6 +153,7 @@ Open `design/constituent-connect-architecture.drawio` in drawio.com. The source 
 ## Workshop paths
 
 - [Fresh-user quickstart](docs/quickstart.md)
+- [Workshop readiness, preflight, reset, and evidence](docs/workshop-readiness.md)
 - [Coach site](docs/coach-site.html) and [coach runbook](docs/coach-runbook.md)
 - [Participant labs 00-06](docs/quickstart.md#3-follow-the-participant-path)
 - [Architecture HTML](docs/architecture.html) and [editable Drawio source](design/constituent-connect-architecture.drawio)

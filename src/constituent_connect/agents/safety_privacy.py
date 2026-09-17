@@ -16,13 +16,42 @@ class SafetyPrivacyAgent:
     authoritative = True
     uses_generation = False
     EMERGENCY_TERMS = re.compile(
-        r"\b(?:smoke|fire|trapped|shooting|gun|immediate danger|"
-        r"cannot breathe|not breathing|overdose|medical emergency|"
-        r"suicide|kill myself|active violence|bleeding badly)\b",
+        r"\b(?:heart attack|stroke|fire|smoke|burning|cannot breathe|can't breathe|"
+        r"not breathing|breathing crisis|drowning|overdose|violence|violent|"
+        r"domestic violence|shooting|active shooter|stabbed|assault|self[-\s]?harm|"
+        r"suicide|kill myself|trapped|immediate danger|medical emergency|"
+        r"bleeding badly|unconscious|choking|seizure|ataque al corazon|derrame cerebral|"
+        r"incendio|humo|no puede respirar|sobredosis|violencia|peligro inmediato|"
+        r"atrapad[oa]s?)\b",
         re.IGNORECASE,
     )
-    HISTORICAL_TERMS = re.compile(
-        r"\b(?:last year|years ago|historically|old report|past incident)\b",
+    CURRENT_MARKERS = re.compile(
+        r"\b(?:now|right now|currently|ongoing|active|happening|there is|there's|"
+        r"someone is|someone's|i am|i'm|my .* is|in my|inside my|at my|here|today|"
+        r"just|help|ayuda|ahora|alguien|esta|estoy|en mi)\b",
+        re.IGNORECASE,
+    )
+    NON_CURRENT_TERMS = re.compile(
+        r"\b(?:last year|last month|yesterday|years ago|historically|old report|"
+        r"past incident|resolved|was resolved|is out|put out|no longer|training|"
+        r"drill|policy|report|historical|hypothetical|what if|if someone|"
+        r"used to|previously|not currently|not now|false alarm|simulacro|historico)\b",
+        re.IGNORECASE,
+    )
+    NEGATED_EMERGENCY = re.compile(
+        r"\b(?:no|not|never|without|isn't|is not|wasn't|was not|no hay|sin)\b.{0,45}"
+        r"\b(?:heart attack|stroke|fire|smoke|violence|overdose|danger|emergency|"
+        r"suicide|self[-\s]?harm|trapped|breathing|incendio|humo|violencia)\b",
+        re.IGNORECASE,
+    )
+    FALSE_POSITIVE_CONTEXT = re.compile(
+        r"\b(?:gun license|fire inspection|fire code|fire department inspection|"
+        r"violence prevention|emergency training|historical report|policy question|"
+        r"smoke detector permit|fire permit)\b",
+        re.IGNORECASE,
+    )
+    CRITICAL_NEGATION_PHRASES = re.compile(
+        r"\b(?:not breathing|can't breathe|cannot breathe|no puede respirar)\b",
         re.IGNORECASE,
     )
 
@@ -38,9 +67,7 @@ class SafetyPrivacyAgent:
         injection = contains_prompt_injection(original)
         discriminatory = contains_discriminatory_instruction(original)
         neutralized = neutralize_untrusted_instructions(redaction.text)
-        emergency = bool(self.EMERGENCY_TERMS.search(original)) and not bool(
-            self.HISTORICAL_TERMS.search(original)
-        )
+        emergency = self._has_current_emergency(original)
         language = self._detect_language(original, message.language)
         summary = self._summarize(neutralized)
         guidance = None
@@ -100,3 +127,25 @@ class SafetyPrivacyAgent:
         if not safe:
             return "No safe service request was identified."
         return safe[:277] + "..." if len(safe) > 280 else safe
+
+    @classmethod
+    def _has_current_emergency(cls, text: str) -> bool:
+        if cls.FALSE_POSITIVE_CONTEXT.search(text) and not cls.CURRENT_MARKERS.search(text):
+            return False
+        clauses = [
+            clause.strip()
+            for clause in re.split(r"[.;!?]\s+|\n+", text)
+            if clause.strip()
+        ] or [text]
+        for clause in clauses:
+            if not cls.EMERGENCY_TERMS.search(clause):
+                continue
+            if cls.CRITICAL_NEGATION_PHRASES.search(clause):
+                return True
+            if cls.NEGATED_EMERGENCY.search(clause):
+                continue
+            non_current = cls.NON_CURRENT_TERMS.search(clause)
+            current = cls.CURRENT_MARKERS.search(clause)
+            if current or not non_current:
+                return True
+        return False

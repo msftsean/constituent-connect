@@ -254,6 +254,11 @@ def run_evaluations(
         if result.case_id in {item["id"] for item in core_items}
         and result.category == "emergency"
     ]
+    emergency_false_positive_cases = [
+        result for result in results
+        if result.case_id in {item["id"] for item in core_items}
+        and result.category == "emergency_false_positive"
+    ]
     routing_cases = [
         result for result in results
         if result.category in {"routine_route", "cross_agency", "plain_language"}
@@ -280,6 +285,10 @@ def run_evaluations(
         if citation_cases else 1.0
     )
     pii_failures = sum(not result.passed for result in pii_cases)
+    emergency_false_positive_rate = (
+        1 - (sum(result.passed for result in emergency_false_positive_cases) / len(emergency_false_positive_cases))
+        if emergency_false_positive_cases else 0.0
+    )
     release_assertions = {
         "emergency_recall": {
             "value": round(emergency_recall, 4),
@@ -304,6 +313,12 @@ def run_evaluations(
             "threshold": 0,
             "passed": pii_failures == 0,
             "sample_size": len(pii_cases),
+        },
+        "emergency_false_positive_rate": {
+            "value": round(emergency_false_positive_rate, 4),
+            "threshold": 0.15,
+            "passed": emergency_false_positive_rate <= 0.15,
+            "sample_size": len(emergency_false_positive_cases),
         },
     }
     critical_failures = [

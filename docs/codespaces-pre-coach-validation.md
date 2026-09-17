@@ -167,3 +167,36 @@ Expected:
 - [ ] ✅ PII fixture is redacted from normal output.
 - [ ] ✅ No real data, secrets, tenant IDs, subscription IDs, or private endpoints are used.
 - [ ] ✅ Outbound email, SMS, phone, dispatch, and production case integrations remain disabled by default.
+
+## 10. Optional facilitator Azure push from Codespaces
+
+Run this only for an authorized Spektra/development environment. Do not deploy to production. The checked-in `azure.yaml` uses Azure remote container build so a Codespace does not need a running local Docker daemon for the deployment build.
+
+```bash
+az login
+azd auth login
+azd env new constituent-connect-dev
+azd env set AZURE_LOCATION eastus2
+azd provision --preview --no-prompt
+```
+
+Expected before continuing:
+
+- Preview completes without permission, quota, policy, or naming failures.
+- Target subscription/environment is approved for the workshop.
+- `enableCommunicationServices` remains `false`.
+- No outbound email, SMS, phone, dispatch, or production case connector is enabled.
+
+If preview is approved, deploy:
+
+```bash
+azd up --no-prompt
+```
+
+After `azd up`, capture the app URL and run:
+
+```bash
+curl -s "$APP_URL/health"
+```
+
+Then repeat the routine, emergency, and PII smoke tests from sections 6–8 against `$APP_URL`. Record the result in `ACCELERATOR-READINESS-REPORT.md` before any coach-facing Azure demo.

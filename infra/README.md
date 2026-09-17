@@ -23,11 +23,11 @@ connection string directly in the Container App configuration.
 ## Deployment contract
 
 `azure.yaml` uses Bicep and packages the root `Dockerfile` for the `web` Container Apps
-service. `SERVICE_WEB_IMAGE` must be set explicitly to a digest-pinned application
-image before any facilitator deployment. There is no hello-world default; an unset
-image should fail before deployment rather than publish the wrong app. Ensure the
-deployment workflow configures the registry identity or preserves the template's
-managed-identity registry configuration.
+service. It enables Azure remote container build so a Codespace does not need a
+running local Docker daemon. `SERVICE_WEB_IMAGE` is supplied by `azd` during the
+service build/deploy flow; direct Bicep validation still requires an explicit
+non-secret image override. Ensure the deployment workflow configures the registry
+identity or preserves the template's managed-identity registry configuration.
 
 Configure non-secret deployment values through Azure Developer CLI environment settings:
 

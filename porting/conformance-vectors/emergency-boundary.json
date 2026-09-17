@@ -1,0 +1,8 @@
+[
+  { "id": "emergency-heart-attack", "message": "My father is having a heart attack right now.", "expectedEmergency": true },
+  { "id": "emergency-stroke", "message": "Someone is having a stroke and needs help now.", "expectedEmergency": true },
+  { "id": "emergency-smoke", "message": "There is fire and smoke inside my building.", "expectedEmergency": true },
+  { "id": "false-gun-license", "message": "How do I apply for a gun license?", "expectedEmergency": false },
+  { "id": "false-fire-inspection", "message": "I need to schedule a fire inspection for my business permit.", "expectedEmergency": false },
+  { "id": "mixed-past-current", "message": "Last year there was a fire; right now smoke is filling my apartment.", "expectedEmergency": true }
+]

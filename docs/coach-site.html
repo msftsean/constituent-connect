@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Constituent Connect coach site</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; line-height: 1.5; color: #0f172a; }
+    body { max-width: 960px; margin: auto; padding: 2rem; }
+    a { color: #0f6cbd; } .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+    article { border: 1px solid #cbd5e1; border-radius: .5rem; padding: 1rem; background: #f8fafc; }
+    .notice { padding: 1rem; background: #fff4ce; border-left: 5px solid #d83b01; }
+  </style>
+</head>
+<body>
+  <h1>Coach site</h1>
+  <p class="notice"><strong>Coach boundary:</strong> keep all prompts and evidence
+    synthetic. This workflow never dispatches emergency services, and no case is
+    created without human approval.</p>
+  <p><a href="quickstart.md">Fresh-user quickstart</a> ·
+    <a href="coach-runbook.md">Full coach runbook</a> ·
+    <a href="architecture.html">Architecture</a> ·
+    <a href="evaluation-scorecard.md">Scorecard</a></p>
+  <h2>Session path</h2>
+  <div class="grid">
+    <article><h3>00 · Orient</h3><a href="labs/lab-00-orientation.md">Safety and authority</a></article>
+    <article><h3>01 · Start</h3><a href="labs/lab-01-start.md">Local synthetic mode</a></article>
+    <article><h3>02 · Ground</h3><a href="labs/lab-02-routine-response.md">Cited routine draft</a></article>
+    <article><h3>03 · Protect</h3><a href="labs/lab-03-safety-privacy.md">PII and injection</a></article>
+    <article><h3>04 · Bound</h3><a href="labs/lab-04-boundaries.md">Ambiguity and emergency</a></article>
+    <article><h3>05 · Approve</h3><a href="labs/lab-05-approval-handoff.md">Human handoff</a></article>
+    <article><h3>06 · Extend</h3><a href="labs/lab-06-configuration.md">Configuration and eval</a></article>
+  </div>
+  <h2>Coach evidence</h2>
+  <p>Use the <a href="concurrent-smoke-test.md">concurrent smoke-test procedure</a>,
+    review the <a href="evidence/concurrent-smoke-test.synthetic.json">committed
+    synthetic evidence</a>, and copy the
+    <a href="evidence/concurrent-smoke-test.template.json">template</a> for a
+    new run.</p>
+</body>
+</html>

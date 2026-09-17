@@ -1,0 +1,33 @@
+{
+  "evidence_id": "cc-smoke-2026-09-09-synthetic-example",
+  "synthetic_only": true,
+  "purpose": "Safe concurrent workshop smoke-test evidence",
+  "run": {
+    "workers": 4,
+    "requests": 8,
+    "request_ids": [
+      "synthetic-req-001",
+      "synthetic-req-002",
+      "synthetic-req-003",
+      "synthetic-req-004",
+      "synthetic-req-005",
+      "synthetic-req-006",
+      "synthetic-req-007",
+      "synthetic-req-008"
+    ],
+    "endpoint_class": "local synthetic workflow",
+    "external_endpoint": false
+  },
+  "checks": {
+    "all_results_completed": true,
+    "all_results_are_drafts": true,
+    "approval_required": true,
+    "created_case_ids": [],
+    "dispatch_actions": [],
+    "raw_pii_present": false,
+    "cross_request_data_observed": false,
+    "emergency_requests_in_batch": false
+  },
+  "result": "pass",
+  "notes": "Illustrative committed evidence. No production traffic or real constituent data."
+}

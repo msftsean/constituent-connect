@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.test/constituent-connect/workflow-result.schema.json",
+  "type": "object",
+  "required": ["inquiry", "route", "response"],
+  "properties": {
+    "inquiry": {
+      "type": "object",
+      "required": ["inquiry_id", "summary", "redacted_content", "urgency", "emergency_signal", "pii_findings"],
+      "properties": {
+        "inquiry_id": { "type": "string" },
+        "summary": { "type": "string" },
+        "redacted_content": { "type": "string" },
+        "detected_language": { "type": "string" },
+        "urgency": { "type": "string", "enum": ["routine", "emergency"] },
+        "emergency_signal": { "type": "boolean" },
+        "pii_findings": { "type": "array" }
+      }
+    },
+    "route": {
+      "type": "object",
+      "required": ["primary_service_id", "secondary_service_ids", "confidence", "human_review_required", "status"],
+      "properties": {
+        "primary_service_id": { "type": ["string", "null"] },
+        "secondary_service_ids": { "type": "array", "items": { "type": "string" } },
+        "confidence": { "type": "number" },
+        "human_review_required": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["route_proposed", "clarification_required", "emergency_exit"] }
+      }
+    },
+    "response": {
+      "type": "object",
+      "required": ["response_id", "draft", "citations", "approval_status", "ai_disclosure"],
+      "properties": {
+        "response_id": { "type": "string" },
+        "draft": { "type": "string" },
+        "citations": { "type": "array" },
+        "approval_status": { "type": "string", "enum": ["pending", "approved", "rejected", "escalated"] },
+        "ai_disclosure": { "type": "string" }
+      }
+    }
+  }
+}

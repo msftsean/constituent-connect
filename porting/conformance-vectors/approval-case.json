@@ -1,0 +1,5 @@
+[
+  { "id": "case-before-approval", "action": "create_case_before_approval", "expectedErrorContains": "approval" },
+  { "id": "emergency-approval", "action": "approve_emergency", "expectedErrorContains": "Emergency responses cannot be approved" },
+  { "id": "duplicate-case", "action": "create_case_twice_after_approval", "expectedSameCaseId": true }
+]

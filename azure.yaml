@@ -1,0 +1,13 @@
+name: maryland-constituent-connect
+metadata:
+  template: maryland-constituent-connect-container-apps@0.2.0
+infra:
+  provider: bicep
+  path: infra
+services:
+  web:
+    project: .
+    language: py
+    host: containerapp
+    docker:
+      path: Dockerfile

@@ -1,0 +1,19 @@
+{
+  "name": "Maryland Constituent Connect",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "forwardPorts": [8000, 5173],
+  "portsAttributes": {
+    "8000": {
+      "label": "Constituent Connect",
+      "onAutoForward": "notify"
+    },
+    "5173": {
+      "label": "Constituent Connect Vite",
+      "onAutoForward": "silent"
+    }
+  },
+  "postCreateCommand": "python -m pip install -e . && python scripts/readiness.py",
+  "remoteUser": "vscode"
+}

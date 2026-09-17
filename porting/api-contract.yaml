@@ -1,0 +1,276 @@
+openapi: 3.1.0
+info:
+  title: Maryland Constituent Connect API
+  version: 0.1.0
+  description: Synthetic-only, approval-gated constituent workflow API.
+servers:
+  - url: http://127.0.0.1:8001
+tags:
+  - name: system
+  - name: workflow
+  - name: cases
+  - name: evaluation
+paths:
+  /health:
+    get:
+      tags: [system]
+      summary: Check local synthetic service health
+      responses:
+        "200":
+          description: Service health
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /api/intake:
+    post:
+      tags: [workflow]
+      summary: Normalize and assess a constituent inquiry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InquiryRequest"
+      responses:
+        "200":
+          description: Normalized inquiry and safety status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /api/classify:
+    post:
+      tags: [workflow]
+      summary: Classify intent and urgency
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InquiryRequest"
+      responses:
+        "200":
+          description: Classification candidates and safety signals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /api/respond:
+    post:
+      tags: [workflow]
+      summary: Draft a grounded response and route
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InquiryRequest"
+      responses:
+        "200":
+          description: Workflow result with citations, route, and approval state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /api/route:
+    post:
+      tags: [workflow]
+      summary: Recommend a synthetic agency route
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InquiryRequest"
+      responses:
+        "200":
+          description: Route recommendation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+  /api/approval:
+    post:
+      tags: [workflow]
+      summary: Record human approval, edit, rejection, reroute, or escalation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApprovalRequest"
+      responses:
+        "200":
+          description: Approval recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/responses/{responseId}/approve:
+    post:
+      tags: [workflow]
+      summary: Record human approval, edit, rejection, reroute, or escalation (legacy route)
+      parameters:
+        - $ref: "#/components/parameters/ResponseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApprovalDecision"
+      responses:
+        "200":
+          description: Approval recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/cases:
+    post:
+      tags: [cases]
+      summary: Create a synthetic case after approval
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CaseRequest"
+      responses:
+        "201":
+          description: Synthetic case created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/cases/{caseId}:
+    get:
+      tags: [cases]
+      summary: Retrieve a synthetic case
+      parameters:
+        - in: path
+          name: caseId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Synthetic case
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/evals/run:
+    post:
+      tags: [evaluation]
+      summary: Run the authorized synthetic evaluation suite
+      responses:
+        "202":
+          description: Evaluation report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+components:
+  parameters:
+    ResponseId:
+      in: path
+      name: responseId
+      required: true
+      schema: { type: string }
+  schemas:
+    InquiryRequest:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string, minLength: 1, maxLength: 100000 }
+        channel:
+          type: string
+          enum: [web, chat, email, voice]
+          default: web
+        language: { type: [string, "null"], maxLength: 32 }
+    ApprovalDecision:
+      type: object
+      properties:
+        reviewer: { type: string, default: api-human-reviewer, maxLength: 200 }
+        edited_text: { type: [string, "null"], maxLength: 100000 }
+        decision:
+          type: string
+          enum: [approve, edit, reject, reroute, escalate]
+          default: approve
+        target_service_id: { type: [string, "null"], maxLength: 200 }
+        reason: { type: [string, "null"], maxLength: 1000 }
+    ApprovalRequest:
+      allOf:
+        - $ref: "#/components/schemas/ApprovalDecision"
+        - type: object
+          required: [response_id]
+          properties:
+            response_id: { type: string, minLength: 1 }
+    CaseRequest:
+      type: object
+      required: [response_id]
+      properties:
+        response_id: { type: string, minLength: 1 }
+    ApiResponse:
+      type: object
+      required: [data, correlation_id]
+      properties:
+        data: {}
+        correlation_id: { type: string }
+    HealthResponse:
+      type: object
+      required: [status, mode, correlation_id]
+      properties:
+        status: { type: string, enum: [healthy] }
+        mode: { type: string, enum: [local-synthetic] }
+        correlation_id: { type: string }
+    ErrorResponse:
+      type: object
+      required: [error, correlation_id]
+      properties:
+        error: { type: string }
+        correlation_id: { type: string }
+        details: {}
+  responses:
+    BadRequest:
+      description: Explicit request or workflow error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    NotFound:
+      description: Resource was not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    ValidationError:
+      description: Request validation error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    ServerError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }

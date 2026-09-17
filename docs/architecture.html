@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Constituent Connect architecture</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; line-height: 1.5; }
+    body { max-width: 920px; margin: 0 auto; padding: 2rem; color: #0f172a; }
+    a { color: #0f6cbd; } .boundary { border-left: 5px solid #a4262c; padding: .75rem 1rem; background: #fde7e9; }
+    .flow { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin: 1.5rem 0; }
+    .card { border: 1px solid #94a3b8; border-radius: .5rem; padding: 1rem; background: #f8fafc; }
+    code { background: #e2e8f0; padding: .1rem .3rem; }
+  </style>
+</head>
+<body>
+  <p><a href="quickstart.md">Fresh-user quickstart</a> · <a href="coach-site.html">Coach site</a></p>
+  <h1>Constituent Connect architecture</h1>
+  <p>This page is a static companion to the editable
+    <a href="../design/constituent-connect-architecture.drawio">Drawio source</a>.
+    The diagram is the source of truth for the visual layout; this page keeps the
+    safety boundaries readable without requiring diagram software.</p>
+  <div class="boundary"><strong>Authority boundary:</strong> responses are drafts
+    until human approval. Emergency handling provides guidance and escalation
+    only. The system does not dispatch emergency services.</div>
+  <div class="flow">
+    <div class="card"><h2>Listen</h2><p>Normalize channel input, detect emergency language, minimize PII, and reject prompt injection.</p></div>
+    <div class="card"><h2>Route</h2><p>Use configured service ownership, confidence, disclosure, and escalation rules.</p></div>
+    <div class="card"><h2>Respond</h2><p>Use approved public knowledge to produce a cited draft or abstain when evidence is missing.</p></div>
+    <div class="card"><h2>Human</h2><p>Review, edit, approve, reroute, or escalate. Case creation is approval-gated.</p></div>
+  </div>
+  <h2>Workshop implementation</h2>
+  <p>The local workflow is transport-neutral and uses synthetic JSON configuration.
+    The Azure-shaped components shown in the source diagram are future deployment
+    placeholders, not a claim that this workshop is production-connected.</p>
+  <p><a href="../design/README.md">Read the design-source notes</a> for icon and
+    editability conventions.</p>
+</body>
+</html>

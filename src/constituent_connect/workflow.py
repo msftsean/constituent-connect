@@ -358,7 +358,10 @@ class ConstituentConnectWorkflow:
 
     def _purge_if_due_locked(self) -> None:
         current = time.monotonic()
-        if current - self._last_purge_monotonic >= self._purge_interval_seconds:
+        if (
+            self._last_purge_monotonic == 0.0
+            or current - self._last_purge_monotonic >= self._purge_interval_seconds
+        ):
             self._last_purge_monotonic = current
             self.purge_expired()
 

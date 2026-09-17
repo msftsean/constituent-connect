@@ -42,6 +42,11 @@ For optional Vite development, open forwarded port 5173. The Vite app uses
 relative `/api` and `/health` calls through the checked-in proxy; browser-facing
 `localhost` backend URLs break in Codespaces.
 
+Before coaches review the app, follow
+[`docs/codespaces-pre-coach-validation.md`](codespaces-pre-coach-validation.md)
+for the full Codespaces test, eval, build, smoke, privacy, emergency, and reset
+sequence.
+
 ## Reset and cleanup
 
 To reset generated workshop artifacts:

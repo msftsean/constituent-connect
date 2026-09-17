@@ -53,6 +53,9 @@ dispatches, and a case cannot be created before human approval.
 
 ## 4. Capture evidence
 
+Before coaches review a Codespace, run the
+[Codespaces pre-coach validation runbook](codespaces-pre-coach-validation.md).
+
 Run the safe smoke-test instructions in
 [concurrent smoke-test evidence](concurrent-smoke-test.md). The committed JSON
 is synthetic evidence only; copy the template for a new run rather than adding
